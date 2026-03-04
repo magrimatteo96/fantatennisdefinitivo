@@ -645,7 +645,7 @@ export const Lineup: React.FC = () => {
                   🏆 Torneo Attivo: {currentTournament.name}
                 </div>
                 <div className="text-white font-semibold text-base">
-                  Peso: {currentTournament.weight} | Slot Totali: {currentTournament.lineup_slots} | Singolari: {singlesCount} ATP + {singlesCount} WTA
+                  Peso: {currentTournament.opponents_count} | Slot Totali: {currentTournament.lineup_slots} | Singolari: {singlesCount} ATP + {singlesCount} WTA
                 </div>
                 <div className="text-slate-300 text-sm">
                   📋 Modulo: {getModuleDescription()}

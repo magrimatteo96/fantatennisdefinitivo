@@ -228,51 +228,32 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const loadCurrentTournament = async () => {
     console.log('🎾 loadCurrentTournament: START');
 
-    const HARDCODED_FALLBACK = {
-      id: '748fbb97-2b73-4520-9b8b-2fb977aa402e',
-      name: 'Indian Wells',
-      type: '1000' as const,
-      tour: 'COMBINED' as const,
-      weight: 2,
-      start_date: '2026-03-09',
-      end_date: '2026-03-22',
-      round_number: 4,
-      surface: 'Hard',
-      location: 'Indian Wells, USA'
-    };
-
-    let tournamentToUse = null;
-
     try {
-      const queryPromise = supabase
+      const { data: tournamentData, error } = await supabase
         .from('tournaments')
         .select('*')
-        .eq('name', 'Indian Wells')
+        .eq('is_active', true)
         .maybeSingle();
 
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Query timeout')), 2000)
-      );
-
-      const { data: tournamentData } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      if (error) {
+        console.error('❌ Error loading tournament:', error);
+        return;
+      }
 
       if (tournamentData) {
-        console.log('✅ FOUND IN DB:', tournamentData.name);
-        tournamentToUse = tournamentData;
+        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.name);
+        setCurrentTournament(tournamentData as any);
+
+        if (isDevelopmentMode) {
+          await autoGenerateMatchups(tournamentData.id);
+        }
+      } else {
+        console.warn('⚠️ No active tournament found');
+        setCurrentTournament(null);
       }
     } catch (error) {
-      console.warn('⚠️ Query failed, using fallback');
-    }
-
-    if (!tournamentToUse) {
-      console.log('🔨 FORCING HARDCODED FALLBACK: Indian Wells');
-      tournamentToUse = HARDCODED_FALLBACK;
-    }
-
-    setCurrentTournament(tournamentToUse);
-
-    if (isDevelopmentMode) {
-      await autoGenerateMatchups(tournamentToUse.id);
+      console.error('❌ Query failed:', error);
+      setCurrentTournament(null);
     }
   };
 

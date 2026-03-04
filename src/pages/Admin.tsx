@@ -26,11 +26,12 @@ type SuperAdminTab = 'matchdays' | 'playerslist' | 'playerpoints' | 'bulkupload'
 type LeagueTab = 'setup' | 'matchups';
 
 export default function Admin() {
-  const { generateMockRoster, generateAllMockRosters } = useFantasy();
+  const { generateMockRoster, generateAllMockRosters, setImpersonatedTeam, impersonatedTeamId, currentTournament } = useFantasy();
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [mainSection, setMainSection] = useState<MainSection>('superadmin');
   const [superAdminTab, setSuperAdminTab] = useState<SuperAdminTab>('matchdays');
@@ -442,6 +443,157 @@ export default function Admin() {
     setShowDeleteModal(true);
   };
 
+  const handleDeleteTeam = async (teamId: string, teamName: string) => {
+    if (!confirm(`ATTENZIONE: Eliminare definitivamente la squadra "${teamName}"?\n\nQuesta operazione cancellerà:\n- La squadra\n- Tutti i giocatori nel roster\n- Tutte le formazioni salvate\n- Tutti i dati associati\n\nQuesta azione NON può essere annullata.`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      await supabase.from('team_lineups').delete().eq('team_id', teamId);
+      await supabase.from('team_players').delete().eq('team_id', teamId);
+      await supabase.from('league_standings').delete().eq('team_id', teamId);
+
+      const { error: deleteError } = await supabase
+        .from('league_teams')
+        .delete()
+        .eq('id', teamId);
+
+      if (deleteError) throw deleteError;
+
+      alert(`Squadra "${teamName}" eliminata con successo!`);
+      await loadTeams();
+    } catch (err: any) {
+      const errorMsg = `Errore eliminazione squadra: ${err.message}`;
+      setError(errorMsg);
+      alert(errorMsg);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateTestTeam = async () => {
+    const teamName = prompt('Nome della nuova squadra test:');
+    if (!teamName || !teamName.trim()) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: newTeam, error: createError } = await supabase
+        .from('league_teams')
+        .insert({
+          name: teamName.trim(),
+          credits: 1000,
+          user_id: null
+        })
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      await generateMockRoster(newTeam.id);
+
+      alert(`Squadra "${teamName}" creata con 20 giocatori!`);
+      await loadTeams();
+    } catch (err: any) {
+      const errorMsg = `Errore creazione squadra: ${err.message}`;
+      setError(errorMsg);
+      alert(errorMsg);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateAutoLineup = async (teamId: string, teamName: string) => {
+    if (!currentTournament) {
+      alert('Nessun torneo attivo! Seleziona prima un torneo attivo.');
+      return;
+    }
+
+    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${currentTournament.name}\nSlot: ${currentTournament.lineup_slots}`)) {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      const { data: roster } = await supabase
+        .from('team_players')
+        .select('player_id, player:players(*)')
+        .eq('team_id', teamId);
+
+      if (!roster || roster.length < 20) {
+        throw new Error(`La squadra deve avere almeno 20 giocatori. Trovati: ${roster?.length || 0}`);
+      }
+
+      const atpPlayers = roster.filter((p: any) => p.player?.tour === 'ATP').map((p: any) => p.player_id);
+      const wtaPlayers = roster.filter((p: any) => p.player?.tour === 'WTA').map((p: any) => p.player_id);
+
+      if (atpPlayers.length < 10 || wtaPlayers.length < 10) {
+        throw new Error(`Serve un roster bilanciato: 10 ATP e 10 WTA. Trovati: ${atpPlayers.length} ATP, ${wtaPlayers.length} WTA`);
+      }
+
+      const singlesCount = Math.floor((currentTournament.lineup_slots - currentTournament.opponents_count) / 2);
+      const doublesCount = currentTournament.opponents_count;
+
+      const selectedAtpSingles = atpPlayers.sort(() => Math.random() - 0.5).slice(0, singlesCount);
+      const selectedWtaSingles = wtaPlayers.sort(() => Math.random() - 0.5).slice(0, singlesCount);
+
+      const remainingAtp = atpPlayers.filter(id => !selectedAtpSingles.includes(id));
+      const remainingWta = wtaPlayers.filter(id => !selectedWtaSingles.includes(id));
+
+      const doublesAtpPicks = remainingAtp.sort(() => Math.random() - 0.5).slice(0, doublesCount);
+      const doublesWtaPicks = remainingWta.sort(() => Math.random() - 0.5).slice(0, doublesCount);
+
+      const mixedDoubles = doublesAtpPicks.map((atpId, i) => ({
+        atp: atpId,
+        wta: doublesWtaPicks[i]
+      }));
+
+      const allSelectedIds = [
+        ...selectedAtpSingles,
+        ...selectedWtaSingles,
+        ...doublesAtpPicks,
+        ...doublesWtaPicks
+      ];
+
+      const captain = allSelectedIds[Math.floor(Math.random() * allSelectedIds.length)];
+
+      await supabase
+        .from('team_lineups')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('tournament_id', currentTournament.id);
+
+      const { error: saveError } = await supabase
+        .from('team_lineups')
+        .insert({
+          team_id: teamId,
+          tournament_id: currentTournament.id,
+          player_ids: {
+            atpSingles: selectedAtpSingles,
+            wtaSingles: selectedWtaSingles,
+            mixedDoubles: mixedDoubles,
+            captain: captain
+          }
+        });
+
+      if (saveError) throw saveError;
+
+      alert(`Formazione automatica generata per "${teamName}"!\n\n${singlesCount} ATP + ${singlesCount} WTA + ${doublesCount} Doppi Misti`);
+    } catch (err: any) {
+      const errorMsg = `Errore generazione lineup: ${err.message}`;
+      setError(errorMsg);
+      alert(errorMsg);
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       <div className="max-w-7xl mx-auto p-6">
@@ -807,19 +959,65 @@ export default function Admin() {
                 DEVELOPER TOOLS
               </h2>
               <p className="text-orange-300 text-sm mb-6">
-                Questi strumenti servono solo per il testing e il reset dei dati durante lo sviluppo.
-                Non utilizzare in produzione.
+                Strumenti avanzati per testing, debug e simulazione. Gestisci squadre, genera formazioni automatiche e impersona utenti.
               </p>
 
+              {error && (
+                <div className="mb-4 p-4 bg-red-900/50 border border-red-500 rounded-lg">
+                  <p className="text-red-300 text-sm">{error}</p>
+                </div>
+              )}
+
+              <div className="bg-gray-800 rounded-lg p-6 mb-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <UserCircle className="w-5 h-5" />
+                  Impersonificazione Squadra
+                </h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  Visualizza l'app dal punto di vista di una squadra specifica. Tutte le pagine (Dashboard, Mercato, Lineup) mostreranno i dati di quella squadra.
+                </p>
+                <select
+                  value={impersonatedTeamId || ''}
+                  onChange={(e) => setImpersonatedTeam(e.target.value || null)}
+                  className="w-full px-4 py-3 bg-gray-700 text-white rounded-lg border-2 border-blue-500"
+                >
+                  <option value="">🏠 Modalità Normale (La Mia Squadra)</option>
+                  {teams.map((team) => (
+                    <option key={team.id} value={team.id}>
+                      👤 {team.name} ({team.credits} crediti)
+                    </option>
+                  ))}
+                </select>
+                {impersonatedTeamId && (
+                  <div className="mt-3 p-3 bg-blue-900/30 border border-blue-500 rounded-lg">
+                    <p className="text-blue-300 text-sm font-semibold">
+                      🎭 Modalità Impersonificazione Attiva
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="bg-gray-800 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Testing Tools</h3>
+                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    onClick={handleCreateTestTeam}
+                    disabled={loading}
+                    className="px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
+                  >
+                    <Plus className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    Crea Squadra Test + Roster
+                  </button>
+
                   <button
                     onClick={async () => {
                       setLoading(true);
+                      setError(null);
                       try {
                         await generateAllMockRosters();
                         await loadTeams();
+                      } catch (err: any) {
+                        setError(`Errore: ${err.message}`);
                       } finally {
                         setLoading(false);
                       }
@@ -828,7 +1026,7 @@ export default function Admin() {
                     className="px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
                   >
                     <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    Generate Mock Rosters for ALL Teams
+                    Popola TUTTE le Squadre
                   </button>
 
                   <button
@@ -837,28 +1035,32 @@ export default function Admin() {
                     className="px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
                   >
                     <RefreshCw className="w-5 h-5" />
-                    Reset League (Clear All Rosters)
+                    Reset League Completo
                   </button>
                 </div>
 
                 <div className="mt-6 p-4 bg-gray-700 rounded-lg">
-                  <h4 className="text-white font-semibold mb-2">Info</h4>
+                  <h4 className="text-white font-semibold mb-2">Guida Rapida</h4>
                   <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
-                    <li>Generate ALL: Popola automaticamente tutte le squadre della lega con 20 giocatori casuali ciascuna (10 ATP + 10 WTA)</li>
+                    <li>Crea Squadra Test: Crea una nuova squadra con 20 giocatori casuali pre-assegnati</li>
+                    <li>Popola TUTTE: Assegna 20 giocatori a tutte le squadre esistenti (10 ATP + 10 WTA)</li>
                     <li>Reset League: Cancella tutti i roster e ricomincia da zero</li>
-                    <li>Usa questi strumenti solo durante il testing</li>
                   </ul>
                 </div>
               </div>
 
               <div className="bg-gray-800 rounded-lg p-6 mt-6">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  Gestione Squadre Individuali
-                </h3>
-                <p className="text-gray-400 text-sm mb-4">
-                  Reset singola squadra senza toccare le altre. Utile per testare salvataggi e assegnazioni.
-                </p>
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                      <Users className="w-5 h-5" />
+                      Gestione Squadre ({teams.length})
+                    </h3>
+                    <p className="text-gray-400 text-sm mt-1">
+                      Gestisci, testa e simula le squadre della lega
+                    </p>
+                  </div>
+                </div>
 
                 {teams.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
@@ -867,19 +1069,42 @@ export default function Admin() {
                 ) : (
                   <div className="space-y-3">
                     {teams.map((team) => (
-                      <div key={team.id} className="flex items-center justify-between p-4 bg-gray-700 rounded-lg hover:bg-gray-600 transition-colors">
-                        <div>
-                          <div className="font-semibold text-white">{team.name}</div>
-                          <div className="text-sm text-gray-400">{team.credits} crediti</div>
+                      <div key={team.id} className="p-4 bg-gray-700 rounded-lg hover:bg-gray-600/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-semibold text-white text-lg">{team.name}</div>
+                            <div className="text-sm text-gray-400">{team.credits} crediti rimasti</div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleGenerateAutoLineup(team.id, team.name)}
+                              disabled={loading}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 disabled:opacity-50 flex items-center gap-2 font-semibold text-sm"
+                              title="Genera formazione automatica per il torneo attivo"
+                            >
+                              <Trophy className="w-4 h-4" />
+                              Auto-Lineup
+                            </button>
+                            <button
+                              onClick={() => handleResetSingleTeam(team.id, team.name)}
+                              disabled={loading}
+                              className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-500 disabled:opacity-50 flex items-center gap-2 font-semibold text-sm"
+                              title="Svuota roster e resetta crediti"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              Reset
+                            </button>
+                            <button
+                              onClick={() => handleDeleteTeam(team.id, team.name)}
+                              disabled={loading}
+                              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center gap-2 font-semibold text-sm"
+                              title="Elimina definitivamente la squadra"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Elimina
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          onClick={() => handleResetSingleTeam(team.id, team.name)}
-                          disabled={loading}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center gap-2 font-semibold text-sm"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Reset Roster
-                        </button>
                       </div>
                     ))}
                   </div>

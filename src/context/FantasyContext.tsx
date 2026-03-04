@@ -10,6 +10,7 @@ interface FantasyContextType {
   standing: Standing | null;
   budgetRemaining: number;
   loading: boolean;
+  impersonatedTeamId: string | null;
   refreshSquad: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
   refreshTournament: () => Promise<void>;
@@ -18,6 +19,7 @@ interface FantasyContextType {
   initializeStanding: (teamName: string) => Promise<void>;
   generateMockRoster: (teamId?: string) => Promise<void>;
   generateAllMockRosters: () => Promise<void>;
+  setImpersonatedTeam: (teamId: string | null) => void;
 }
 
 const FantasyContext = createContext<FantasyContextType | undefined>(undefined);
@@ -39,6 +41,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const [currentTournament, setCurrentTournament] = useState<Tournament | null>(null);
   const [standing, setStanding] = useState<Standing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [impersonatedTeamId, setImpersonatedTeamId] = useState<string | null>(null);
 
   useEffect(() => {
 
@@ -134,15 +137,32 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     console.log('🔍 refreshSquad: Loading team for user:', user.id);
 
-    // First get the user's team from league_teams
-    const { data: teamData, error: teamError } = await supabase
-      .from('league_teams')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Use impersonated team if set, otherwise use user's team
+    let teamData = null;
+    if (impersonatedTeamId) {
+      console.log('👤 IMPERSONATION MODE: Using team ID:', impersonatedTeamId);
+      const { data, error } = await supabase
+        .from('league_teams')
+        .select('id')
+        .eq('id', impersonatedTeamId)
+        .maybeSingle();
 
-    if (teamError) {
-      console.error('❌ refreshSquad: Error loading team:', teamError);
+      if (error) {
+        console.error('❌ refreshSquad: Error loading impersonated team:', error);
+      }
+      teamData = data;
+    } else {
+      // First get the user's team from league_teams
+      const { data, error } = await supabase
+        .from('league_teams')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('❌ refreshSquad: Error loading team:', error);
+      }
+      teamData = data;
     }
 
     if (!teamData) {
@@ -712,6 +732,22 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const budgetRemaining = standing?.budget_remaining ||
     (1000 - mySquad.reduce((sum, s) => sum + s.auction_price, 0));
 
+  const setImpersonatedTeam = (teamId: string | null) => {
+    setImpersonatedTeamId(teamId);
+    if (teamId) {
+      console.log('👤 Switching to team:', teamId);
+      refreshSquad();
+      loadStanding();
+    }
+  };
+
+  useEffect(() => {
+    if (impersonatedTeamId) {
+      refreshSquad();
+      loadStanding();
+    }
+  }, [impersonatedTeamId]);
+
   return (
     <FantasyContext.Provider
       value={{
@@ -722,6 +758,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         standing,
         budgetRemaining,
         loading,
+        impersonatedTeamId,
         refreshSquad,
         refreshPlayers,
         refreshTournament,
@@ -730,6 +767,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         initializeStanding,
         generateMockRoster,
         generateAllMockRosters,
+        setImpersonatedTeam,
       }}
     >
       {children}

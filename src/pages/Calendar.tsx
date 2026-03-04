@@ -7,7 +7,6 @@ interface Tournament {
   id: string;
   name: string;
   type: string;
-  weight: number;
   start_date: string;
   end_date: string;
   round_number: number;
@@ -139,7 +138,7 @@ export const Calendar: React.FC = () => {
                       </td>
                       <td className="p-4 text-center">
                         <span className={`text-lg font-bold ${isCurrent ? 'text-[#ccff00]' : 'text-slate-400'}`}>
-                          {tournament.weight}
+                          {tournament.opponents_count}
                         </span>
                       </td>
                     </tr>

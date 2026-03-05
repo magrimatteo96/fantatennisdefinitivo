@@ -4,6 +4,7 @@ import { Trophy, Calendar, Calculator, RefreshCw, Users, Award, Upload, CircleUs
 import { calculateAllMatchupsForTournament } from '../lib/matchupCalculations';
 import GlobalMatchdaysManager from '../components/GlobalMatchdaysManager';
 import { useFantasy } from '../context/FantasyContext';
+import { generateBalancedCalendar, resetAllMatchups, BalancedGenerationResult } from '../lib/balancedMatchupGeneration';
 
 interface Player {
   id: string;
@@ -32,6 +33,7 @@ export default function Admin() {
   const [loading, setLoading] = useState(false);
   const [calculating, setCalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [generationResult, setGenerationResult] = useState<BalancedGenerationResult | null>(null);
 
   const [mainSection, setMainSection] = useState<MainSection>('superadmin');
   const [superAdminTab, setSuperAdminTab] = useState<SuperAdminTab>('matchdays');
@@ -226,6 +228,26 @@ export default function Admin() {
     }
   };
 
+  const handleResetCalendar = async () => {
+    const confirmation = prompt(
+      '⚠️ ATTENZIONE: Questa operazione cancellerà TUTTI i matchup generati per le 30 giornate.\n\n' +
+      'Scrivi "CANCELLA" per confermare:'
+    );
+
+    if (confirmation !== 'CANCELLA') return;
+
+    setLoading(true);
+    setGenerationResult(null);
+    try {
+      await resetAllMatchups();
+      alert('✅ Calendario matchup resettato! Puoi ora rigenerare il calendario.');
+    } catch (error) {
+      alert(`Errore durante il reset: ${(error as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleGenerateMatchups = async () => {
     const teamCount = teams.length;
 
@@ -234,26 +256,54 @@ export default function Admin() {
       return;
     }
 
-    if (!confirm(`Genera gli scontri diretti per tutte le 30 giornate?\n\nLa lega ha ${teamCount} squadre.\nGli abbinamenti seguiranno il sistema Round-Robin:\n\n• SLAM: 3 avversari per squadra\n• Master 1000: 2 avversari per squadra\n• 250/500: 1 avversario per squadra`)) {
+    if (!confirm(
+      `🎾 GENERAZIONE CALENDARIO EQUILIBRATO\n\n` +
+      `La lega ha ${teamCount} squadre.\n\n` +
+      `Il sistema garantisce:\n` +
+      `• SLAM: esattamente 3 match per squadra\n` +
+      `• Master 1000: esattamente 2 match per squadra\n` +
+      `• ATP 250/500: esattamente 1 match per squadra\n` +
+      `• Equilibrio perfetto: ogni squadra affronta le altre lo stesso numero di volte\n\n` +
+      `Procedere con la generazione?`
+    )) {
       return;
     }
 
     setLoading(true);
+    setGenerationResult(null);
     try {
-      const { data: result, error } = await supabase.rpc('generate_all_matchups');
+      // First reset existing matchups
+      await resetAllMatchups();
 
-      if (error) throw error;
+      // Generate new balanced calendar
+      const result = await generateBalancedCalendar();
+      setGenerationResult(result);
 
-      const totalMatchups = result?.reduce((sum: number, r: any) => sum + r.matchups_generated, 0) || 0;
+      // Show detailed summary
+      let message = `✅ CALENDARIO GENERATO CON SUCCESSO!\n\n`;
+      message += `📊 Statistiche Globali:\n`;
+      message += `• Giornate processate: ${result.tournamentsProcessed}\n`;
+      message += `• Matchup totali generati: ${result.totalMatchups}\n`;
+      message += `• Squadre nella lega: ${teamCount}\n\n`;
 
-      let message = `✅ Scontri generati per ${result?.length || 0} giornate!\n\n`;
-      message += `Totale matchup: ${totalMatchups}\n\n`;
-      message += `La lega con ${teamCount} squadre è pronta!`;
+      const slamRounds = result.stats.filter(s => s.opponentsCount === 3);
+      const masterRounds = result.stats.filter(s => s.opponentsCount === 2);
+      const regularRounds = result.stats.filter(s => s.opponentsCount === 1);
+
+      message += `🏆 Giornate SLAM (${slamRounds.length}): ${slamRounds.reduce((sum, s) => sum + s.matchupsGenerated, 0)} matchup\n`;
+      message += `   → Ogni squadra gioca 3 match per SLAM\n\n`;
+      message += `⭐ Giornate Master 1000 (${masterRounds.length}): ${masterRounds.reduce((sum, s) => sum + s.matchupsGenerated, 0)} matchup\n`;
+      message += `   → Ogni squadra gioca 2 match per Master\n\n`;
+      message += `🎾 Giornate 250/500 (${regularRounds.length}): ${regularRounds.reduce((sum, s) => sum + s.matchupsGenerated, 0)} matchup\n`;
+      message += `   → Ogni squadra gioca 1 match per 250/500\n\n`;
+
+      message += `⚖️ ${result.balanceReport}`;
 
       alert(message);
       await loadTournaments();
     } catch (error) {
-      alert(`Errore generazione matchup: ${(error as Error).message}`);
+      alert(`❌ Errore generazione matchup: ${(error as Error).message}`);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -912,8 +962,8 @@ export default function Admin() {
 
                 <div className="bg-blue-900/30 border border-blue-500 rounded-lg p-4 mb-6">
                   <p className="text-blue-300 text-sm">
-                    Sistema Round-Robin Dinamico: supporta leghe da 4, 6, 8 o 10 squadre.
-                    Gli scontri vengono generati automaticamente per tutte le 30 giornate rispettando il peso dei tornei.
+                    <strong>Sistema Equilibrato:</strong> Ogni squadra gioca esattamente il numero di match previsto per ogni tipo di torneo.
+                    L'algoritmo garantisce che ogni squadra affronti tutte le altre equamente nel corso delle 30 giornate.
                   </p>
                 </div>
 
@@ -928,6 +978,15 @@ export default function Admin() {
                   </button>
 
                   <button
+                    onClick={handleResetCalendar}
+                    disabled={loading}
+                    className="w-full px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2 font-bold text-lg"
+                  >
+                    <Trash2 className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                    Resetta Calendario Matchup
+                  </button>
+
+                  <button
                     onClick={handleCalculateAllResults}
                     disabled={calculating}
                     className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-500 hover:to-pink-500 disabled:opacity-50 flex items-center justify-center gap-2 font-bold text-lg"
@@ -937,13 +996,32 @@ export default function Admin() {
                   </button>
                 </div>
 
+                {generationResult && (
+                  <div className="mt-6 p-5 bg-green-900/30 border border-green-500 rounded-lg">
+                    <h3 className="text-green-400 font-bold text-lg mb-3 flex items-center gap-2">
+                      <Trophy className="w-5 h-5" />
+                      Riepilogo Generazione
+                    </h3>
+                    <div className="space-y-2 text-gray-200 text-sm">
+                      <p><strong>Giornate processate:</strong> {generationResult.tournamentsProcessed}</p>
+                      <p><strong>Matchup totali:</strong> {generationResult.totalMatchups}</p>
+                      <p><strong>Squadre nella lega:</strong> {teams.length}</p>
+
+                      <div className="mt-3 pt-3 border-t border-green-500/30">
+                        <p className="text-xs text-green-300 whitespace-pre-line">{generationResult.balanceReport}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 p-4 bg-gray-700 rounded-lg">
-                  <h3 className="text-white font-semibold mb-2">Come Funziona</h3>
+                  <h3 className="text-white font-semibold mb-2">Regolamento Match</h3>
                   <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
-                    <li>SLAM (es. Australian Open): ogni squadra affronta 3 avversari</li>
-                    <li>Master 1000: ogni squadra affronta 2 avversari</li>
-                    <li>ATP 250/500: ogni squadra affronta 1 avversario</li>
-                    <li>Il sistema funziona con qualsiasi numero pari di squadre (4-10)</li>
+                    <li><strong>SLAM</strong> (es. Australian Open): ogni squadra gioca esattamente 3 match</li>
+                    <li><strong>Master 1000</strong>: ogni squadra gioca esattamente 2 match</li>
+                    <li><strong>ATP 250/500</strong>: ogni squadra gioca esattamente 1 match</li>
+                    <li><strong>Equilibrio</strong>: ogni squadra affronterà tutte le altre lo stesso numero di volte (±1)</li>
+                    <li>Il sistema supporta leghe con 4, 6, 8 o 10 squadre</li>
                   </ul>
                 </div>
               </div>

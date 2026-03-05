@@ -241,11 +241,11 @@ export default function Admin() {
     try {
       console.log('Inizio cancellazione matchups...');
 
-      // Cancella tutti i matchups direttamente
+      // Cancella tutti i matchups usando UUID corretto
       const { error } = await supabase
         .from('matchups')
         .delete()
-        .neq('id', 0);
+        .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (error) {
         console.error('Errore durante la cancellazione:', error);
@@ -517,7 +517,7 @@ export default function Admin() {
     try {
       await supabase.from('team_lineups').delete().eq('team_id', teamId);
       await supabase.from('team_players').delete().eq('team_id', teamId);
-      await supabase.from('league_standings').delete().eq('team_id', teamId);
+      await supabase.from('championship_standings').delete().eq('team_id', teamId);
 
       const { error: deleteError } = await supabase
         .from('league_teams')

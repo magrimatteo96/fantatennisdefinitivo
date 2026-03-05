@@ -266,7 +266,7 @@ export async function resetAllMatchups(): Promise<void> {
   const { error } = await supabase
     .from('matchups')
     .delete()
-    .neq('id', 0); // Delete all rows
+    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all rows using UUID
 
   if (error) {
     console.error('Errore in resetAllMatchups:', error);

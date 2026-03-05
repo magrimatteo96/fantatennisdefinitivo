@@ -310,7 +310,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     // Get league standing data
     const { data: leagueData } = await supabase
-      .from('league_standings')
+      .from('championship_standings')
       .select('*')
       .eq('team_id', teamData.id)
       .maybeSingle();
@@ -330,9 +330,9 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         updated_at: leagueData.updated_at || new Date().toISOString(),
       } as any);
     } else {
-      console.log('📊 Creating initial league_standings record');
+      console.log('📊 Creating initial championship_standings record');
       const { data: newStanding, error: createError } = await supabase
-        .from('league_standings')
+        .from('championship_standings')
         .insert({
           team_id: teamData.id,
           total_points: 0,

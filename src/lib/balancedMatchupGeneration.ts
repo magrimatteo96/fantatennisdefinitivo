@@ -261,12 +261,17 @@ function generateBalanceReport(
  * Deletes all matchups from the database
  */
 export async function resetAllMatchups(): Promise<void> {
+  console.log('resetAllMatchups chiamata');
+
   const { error } = await supabase
     .from('matchups')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+    .neq('id', 0); // Delete all rows
 
   if (error) {
+    console.error('Errore in resetAllMatchups:', error);
     throw new Error(`Error resetting matchups: ${error.message}`);
   }
+
+  console.log('Tutti i matchups cancellati');
 }

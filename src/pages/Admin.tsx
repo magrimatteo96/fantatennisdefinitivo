@@ -229,19 +229,33 @@ export default function Admin() {
   };
 
   const handleResetCalendar = async () => {
-    const confirmation = prompt(
-      '⚠️ ATTENZIONE: Questa operazione cancellerà TUTTI i matchup generati per le 30 giornate.\n\n' +
-      'Scrivi "CANCELLA" per confermare:'
-    );
+    console.log('Funzione reset partita');
 
-    if (confirmation !== 'CANCELLA') return;
+    if (!window.confirm('Sei sicuro di voler cancellare tutto il calendario?')) {
+      console.log('Reset annullato dall\'utente');
+      return;
+    }
 
     setLoading(true);
     setGenerationResult(null);
     try {
-      await resetAllMatchups();
-      alert('✅ Calendario matchup resettato! Puoi ora rigenerare il calendario.');
+      console.log('Inizio cancellazione matchups...');
+
+      // Cancella tutti i matchups direttamente
+      const { error } = await supabase
+        .from('matchups')
+        .delete()
+        .neq('id', 0);
+
+      if (error) {
+        console.error('Errore durante la cancellazione:', error);
+        throw error;
+      }
+
+      console.log('Matchups cancellati con successo');
+      alert('Calendario resettato con successo!');
     } catch (error) {
+      console.error('Errore completo:', error);
       alert(`Errore durante il reset: ${(error as Error).message}`);
     } finally {
       setLoading(false);

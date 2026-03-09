@@ -522,11 +522,9 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     let teamId: string;
 
     if (providedTeamId) {
-      // Team ID provided directly (from Admin panel)
       teamId = providedTeamId;
       console.log('📋 Using provided team ID:', teamId);
     } else {
-      // No team ID provided, use logged-in user's team
       if (!user) {
         alert('You must be logged in to generate a mock roster');
         return;
@@ -534,7 +532,6 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
       console.log('👤 Generating for user:', user.id);
 
-      // Get or create user's team
       let teamData = await supabase
         .from('league_teams')
         .select('id')
@@ -565,84 +562,171 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       teamId = teamData.data.id;
     }
 
-    // Clear existing players
+    // Get team details including current credits
+    const { data: teamData } = await supabase
+      .from('league_teams')
+      .select('credits, name')
+      .eq('id', teamId)
+      .single();
+
+    if (!teamData) {
+      alert('Team not found');
+      return;
+    }
+
+    console.log(`📊 Team ${teamData.name} has ${teamData.credits} credits`);
+
+    // Clear existing players and reset credits
     console.log('🧹 Clearing existing players...');
     await supabase
       .from('team_players')
       .delete()
       .eq('team_id', teamId);
 
-    // Get 10 ATP players - mix of high and low ranking
-    console.log('🔍 Fetching ATP players...');
+    await supabase
+      .from('league_teams')
+      .update({ credits: 1000 })
+      .eq('id', teamId);
+
+    let currentCredits = 1000;
+
+    // Get ALL already owned players across ALL teams
+    console.log('🔒 Fetching already owned players...');
+    const { data: ownedPlayers } = await supabase
+      .from('team_players')
+      .select('player_id');
+
+    const ownedPlayerIds = new Set((ownedPlayers || []).map(tp => tp.player_id));
+    console.log(`🔒 ${ownedPlayerIds.size} players are already owned by other teams`);
+
+    // Get 10 ATP players - excluding owned ones
+    console.log('🔍 Fetching available ATP players...');
     const { data: allAtpPlayers } = await supabase
       .from('players')
       .select('*')
       .eq('tour', 'ATP')
       .order('fixed_ranking');
 
-    if (!allAtpPlayers || allAtpPlayers.length < 10) {
-      alert('Not enough ATP players in database');
+    const availableAtpPlayers = (allAtpPlayers || []).filter(p => !ownedPlayerIds.has(p.id));
+    console.log(`✅ ${availableAtpPlayers.length} ATP players available`);
+
+    if (availableAtpPlayers.length < 10) {
+      alert(`Not enough available ATP players (need 10, found ${availableAtpPlayers.length})`);
       return;
     }
 
-    // Select top 5 (ranking 1-5) and 5 random from lower rankings (50+)
-    const topAtp = allAtpPlayers.slice(0, 5);
-    const lowRankingAtp = allAtpPlayers.filter(p => (p.fixed_ranking || p.ranking) >= 50);
-    const randomLowAtp = lowRankingAtp
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5);
-    const selectedAtp = [...topAtp, ...randomLowAtp];
-
-    // Get 10 WTA players - mix of high and low ranking
-    console.log('🔍 Fetching WTA players...');
+    // Get 10 WTA players - excluding owned ones
+    console.log('🔍 Fetching available WTA players...');
     const { data: allWtaPlayers } = await supabase
       .from('players')
       .select('*')
       .eq('tour', 'WTA')
       .order('fixed_ranking');
 
-    if (!allWtaPlayers || allWtaPlayers.length < 10) {
-      alert('Not enough WTA players in database');
+    const availableWtaPlayers = (allWtaPlayers || []).filter(p => !ownedPlayerIds.has(p.id));
+    console.log(`✅ ${availableWtaPlayers.length} WTA players available`);
+
+    if (availableWtaPlayers.length < 10) {
+      alert(`Not enough available WTA players (need 10, found ${availableWtaPlayers.length})`);
       return;
     }
 
-    // Select top 5 (ranking 1-5) and 5 random from lower rankings (50+)
-    const topWta = allWtaPlayers.slice(0, 5);
-    const lowRankingWta = allWtaPlayers.filter(p => (p.fixed_ranking || p.ranking) >= 50);
-    const randomLowWta = lowRankingWta
-      .sort(() => Math.random() - 0.5)
-      .slice(0, 5);
-    const selectedWta = [...topWta, ...randomLowWta];
+    // Select 10 ATP players - shuffle and take first 10 to ensure uniqueness
+    const shuffledAtp = [...availableAtpPlayers].sort(() => Math.random() - 0.5);
+    const selectedAtp = shuffledAtp.slice(0, 10);
 
-    // Insert all 20 players into team_players
-    const allSelectedPlayers = [...selectedAtp, ...selectedWta];
-    console.log('💾 Inserting 20 players into team...');
+    // Select 10 WTA players - shuffle and take first 10 to ensure uniqueness
+    const shuffledWta = [...availableWtaPlayers].sort(() => Math.random() - 0.5);
+    const selectedWta = shuffledWta.slice(0, 10);
 
-    const insertPromises = allSelectedPlayers.map(player =>
-      supabase
+    let allSelectedPlayers = [...selectedAtp, ...selectedWta];
+    console.log(`💾 Inserting ${allSelectedPlayers.length} players into team...`);
+
+    let successCount = 0;
+    let attemptedPlayerIds = new Set<string>();
+    const addedPlayerIds = new Set<string>();
+
+    // Keep trying until we have exactly 20 players or run out of options
+    while (successCount < 20) {
+      // Find next player to try
+      const player = allSelectedPlayers.find(p => !attemptedPlayerIds.has(p.id));
+
+      if (!player) {
+        console.log('🔄 Need more players, fetching additional options...');
+
+        // Need more ATP players?
+        const needAtpCount = 10 - Array.from(addedPlayerIds).filter(id =>
+          selectedAtp.find(p => p.id === id)
+        ).length;
+
+        const needWtaCount = 10 - Array.from(addedPlayerIds).filter(id =>
+          selectedWta.find(p => p.id === id)
+        ).length;
+
+        if (needAtpCount > 0) {
+          const moreAtp = availableAtpPlayers
+            .filter(p => !attemptedPlayerIds.has(p.id))
+            .slice(0, needAtpCount);
+          allSelectedPlayers.push(...moreAtp);
+        }
+
+        if (needWtaCount > 0) {
+          const moreWta = availableWtaPlayers
+            .filter(p => !attemptedPlayerIds.has(p.id))
+            .slice(0, needWtaCount);
+          allSelectedPlayers.push(...moreWta);
+        }
+
+        if (allSelectedPlayers.filter(p => !attemptedPlayerIds.has(p.id)).length === 0) {
+          console.error('❌ No more players available to try');
+          break;
+        }
+        continue;
+      }
+
+      attemptedPlayerIds.add(player.id);
+      const auctionPrice = Math.floor(Math.random() * 40) + 10;
+
+      if (currentCredits < auctionPrice) {
+        console.warn(`⚠️ Not enough credits for ${player.first_name} ${player.last_name}`);
+        continue;
+      }
+
+      const { error } = await supabase
         .from('team_players')
         .insert({
           team_id: teamId,
           player_id: player.id,
-          auction_price: Math.floor(Math.random() * 50) + 10 // Random price 10-60
-        })
-    );
+          auction_price: auctionPrice
+        });
 
-    const results = await Promise.all(insertPromises);
-    const errors = results.filter(r => r.error);
+      if (error) {
+        if (error.message?.includes('duplicate') || error.code === '23505') {
+          console.warn(`⚠️ ${player.first_name} ${player.last_name} already owned, trying another...`);
+        } else {
+          console.error(`❌ Failed to add ${player.first_name} ${player.last_name}:`, error.message);
+        }
+      } else {
+        currentCredits -= auctionPrice;
+        await supabase
+          .from('league_teams')
+          .update({ credits: currentCredits })
+          .eq('id', teamId);
 
-    if (errors.length > 0) {
-      console.error('❌ Errors inserting players - count:', errors.length);
-      errors.forEach((err, idx) => {
-        console.error(`Error ${idx + 1}:`, err.error?.message);
-      });
-      alert('Some players could not be added');
-    } else {
-      console.log('✅ All 20 players added successfully!');
-      alert('✅ Mock roster generated! 20 players added to your squad.');
+        addedPlayerIds.add(player.id);
+        console.log(`✅ Added ${player.first_name} ${player.last_name} for ${auctionPrice} credits (${currentCredits} remaining)`);
+        successCount++;
+      }
     }
 
-    // Refresh squad to update UI
+    console.log(`🎉 Roster generation complete: ${successCount} players added`);
+
+    if (successCount < 20) {
+      alert(`⚠️ Only ${successCount}/20 players were added. Not enough available players.`);
+    } else {
+      alert(`✅ Mock roster generated! 20 players added to squad.`);
+    }
+
     await refreshSquad();
     await loadStanding();
   };

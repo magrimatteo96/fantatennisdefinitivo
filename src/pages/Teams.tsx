@@ -216,6 +216,11 @@ export default function Teams() {
       return;
     }
 
+    if (player.price > selectedTeam.credits) {
+      alert('Crediti insufficienti per questo acquisto');
+      return;
+    }
+
     const { error } = await supabase
       .from('team_players')
       .insert({
@@ -225,6 +230,11 @@ export default function Teams() {
       });
 
     if (!error) {
+      await supabase
+        .from('league_teams')
+        .update({ credits: selectedTeam.credits - player.price })
+        .eq('id', selectedTeam.id);
+
       await loadTeams();
       setShowPlayerSearch(false);
       setSearchQuery('');
@@ -240,13 +250,25 @@ export default function Teams() {
       return;
     }
 
+    const { data: playerData } = await supabase
+      .from('team_players')
+      .select('auction_price')
+      .eq('team_id', selectedTeam.id)
+      .eq('player_id', playerId)
+      .maybeSingle();
+
     const { error } = await supabase
       .from('team_players')
       .delete()
       .eq('team_id', selectedTeam.id)
       .eq('player_id', playerId);
 
-    if (!error) {
+    if (!error && playerData) {
+      await supabase
+        .from('league_teams')
+        .update({ credits: selectedTeam.credits + playerData.auction_price })
+        .eq('id', selectedTeam.id);
+
       await loadTeams();
     }
   };

@@ -20,7 +20,8 @@ export const Market: React.FC = () => {
   const wtaCount = mySquad.filter(s => s.player?.tour === 'WTA').length;
 
   const filteredPlayers = players.filter(player => {
-    const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = `${player.first_name} ${player.last_name}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          player.ranking.toString().includes(searchTerm);
     const matchesTour = tourFilter === 'ALL' || player.tour === tourFilter;
     return matchesSearch && matchesTour;
@@ -145,7 +146,7 @@ export const Market: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4 flex-1">
                     <PlayerAvatar
-                      name={player.name}
+                      name={`${player.first_name} ${player.last_name}`}
                       tour={player.tour}
                       imageUrl={player.image_url}
                       size="lg"
@@ -153,7 +154,7 @@ export const Market: React.FC = () => {
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <CountryFlag countryCode={(player as any).country || 'XX'} size="md" />
-                        <h3 className="text-white font-bold text-lg">{player.name}</h3>
+                        <h3 className="text-white font-bold text-lg">{player.first_name} {player.last_name}</h3>
                         <span
                           className={`px-2 py-1 rounded text-xs font-semibold ${
                             player.tour === 'ATP'
@@ -233,7 +234,7 @@ export const Market: React.FC = () => {
               >
                 {selectedPlayer.ranking}
               </div>
-              <h2 className="text-2xl font-bold text-white mb-1">{selectedPlayer.name}</h2>
+              <h2 className="text-2xl font-bold text-white mb-1">{selectedPlayer.first_name} {selectedPlayer.last_name}</h2>
               <span
                 className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
                   selectedPlayer.tour === 'ATP'

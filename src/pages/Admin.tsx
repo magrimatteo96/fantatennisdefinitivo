@@ -8,7 +8,8 @@ import { generateBalancedCalendar, resetAllMatchups, BalancedGenerationResult } 
 
 interface Player {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   tour: 'ATP' | 'WTA';
   total_points: number;
   ranking?: number;
@@ -47,7 +48,7 @@ export default function Admin() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [playerForm, setPlayerForm] = useState({ name: '', tour: 'ATP' as 'ATP' | 'WTA', ranking: 1, price: 50 });
+  const [playerForm, setPlayerForm] = useState({ first_name: '', last_name: '', tour: 'ATP' as 'ATP' | 'WTA', ranking: 1, price: 50 });
 
   const [tournaments, setTournaments] = useState<any[]>([]);
 
@@ -74,8 +75,8 @@ export default function Admin() {
   const loadPlayers = async () => {
     const { data, error } = await supabase
       .from('players')
-      .select('id, name, tour, total_points, ranking, price')
-      .order('name', { ascending: true });
+      .select('id, first_name, last_name, tour, total_points, ranking, price')
+      .order('ranking', { ascending: true });
 
     if (error) {
       alert('Error loading players: ' + error.message);
@@ -155,7 +156,7 @@ export default function Admin() {
         if (isNaN(points)) continue;
 
         const player = players.find(
-          (p) => p.name.toLowerCase() === playerName.toLowerCase()
+          (p) => `${p.first_name} ${p.last_name}`.toLowerCase() === playerName.toLowerCase()
         );
 
         if (player) {
@@ -415,8 +416,8 @@ export default function Admin() {
   };
 
   const handleAddPlayer = async () => {
-    if (!playerForm.name.trim()) {
-      alert('Inserisci il nome del giocatore');
+    if (!playerForm.first_name.trim() || !playerForm.last_name.trim()) {
+      alert('Inserisci il nome e cognome del giocatore');
       return;
     }
 
@@ -424,7 +425,8 @@ export default function Admin() {
       setLoading(true);
       await supabase.from('players').insert([
         {
-          name: playerForm.name.trim(),
+          first_name: playerForm.first_name.trim(),
+          last_name: playerForm.last_name.trim(),
           tour: playerForm.tour,
           ranking: playerForm.ranking,
           price: playerForm.price,
@@ -434,7 +436,7 @@ export default function Admin() {
 
       alert('✅ Giocatore aggiunto!');
       setShowAddModal(false);
-      setPlayerForm({ name: '', tour: 'ATP', ranking: 1, price: 50 });
+      setPlayerForm({ first_name: '', last_name: '', tour: 'ATP', ranking: 1, price: 50 });
       await loadPlayers();
     } catch (error) {
       alert('Errore aggiunta giocatore');
@@ -444,14 +446,15 @@ export default function Admin() {
   };
 
   const handleEditPlayer = async () => {
-    if (!selectedPlayer || !playerForm.name.trim()) return;
+    if (!selectedPlayer || !playerForm.first_name.trim() || !playerForm.last_name.trim()) return;
 
     try {
       setLoading(true);
       await supabase
         .from('players')
         .update({
-          name: playerForm.name.trim(),
+          first_name: playerForm.first_name.trim(),
+          last_name: playerForm.last_name.trim(),
           tour: playerForm.tour,
           ranking: playerForm.ranking,
           price: playerForm.price
@@ -461,7 +464,7 @@ export default function Admin() {
       alert('✅ Giocatore aggiornato!');
       setShowEditModal(false);
       setSelectedPlayer(null);
-      setPlayerForm({ name: '', tour: 'ATP', ranking: 1, price: 50 });
+      setPlayerForm({ first_name: '', last_name: '', tour: 'ATP', ranking: 1, price: 50 });
       await loadPlayers();
     } catch (error) {
       alert('Errore modifica giocatore');
@@ -494,7 +497,8 @@ export default function Admin() {
   const openEditModal = (player: Player) => {
     setSelectedPlayer(player);
     setPlayerForm({
-      name: player.name,
+      first_name: player.first_name,
+      last_name: player.last_name,
       tour: player.tour,
       ranking: player.ranking || 1,
       price: player.price || 50
@@ -786,7 +790,7 @@ export default function Admin() {
                     <tbody className="divide-y divide-gray-700">
                       {players.map((player) => (
                         <tr key={player.id} className="hover:bg-gray-700/50">
-                          <td className="px-4 py-3 text-white">{player.name}</td>
+                          <td className="px-4 py-3 text-white">{player.first_name} {player.last_name}</td>
                           <td className="px-4 py-3 text-gray-300">{player.tour}</td>
                           <td className="px-4 py-3 text-gray-300">{player.ranking || '-'}</td>
                           <td className="px-4 py-3 text-gray-300">{player.price} cr</td>
@@ -849,7 +853,7 @@ export default function Admin() {
                       <tbody className="divide-y divide-gray-700">
                         {players.map((player) => (
                           <tr key={player.id} className="hover:bg-gray-700/50">
-                            <td className="px-4 py-3 text-white">{player.name}</td>
+                            <td className="px-4 py-3 text-white">{player.first_name} {player.last_name}</td>
                             <td className="px-4 py-3 text-gray-300">{player.tour}</td>
                             <td className="px-4 py-3 text-center">
                               <input
@@ -1222,9 +1226,21 @@ export default function Admin() {
                 <label className="block text-sm font-medium text-gray-300 mb-1">Nome</label>
                 <input
                   type="text"
-                  value={playerForm.name}
-                  onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
+                  value={playerForm.first_name}
+                  onChange={(e) => setPlayerForm({ ...playerForm, first_name: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
+                  placeholder="Nome"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Cognome</label>
+                <input
+                  type="text"
+                  value={playerForm.last_name}
+                  onChange={(e) => setPlayerForm({ ...playerForm, last_name: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
+                  placeholder="Cognome"
                 />
               </div>
 
@@ -1287,9 +1303,21 @@ export default function Admin() {
                 <label className="block text-sm font-medium text-gray-300 mb-1">Nome</label>
                 <input
                   type="text"
-                  value={playerForm.name}
-                  onChange={(e) => setPlayerForm({ ...playerForm, name: e.target.value })}
+                  value={playerForm.first_name}
+                  onChange={(e) => setPlayerForm({ ...playerForm, first_name: e.target.value })}
                   className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
+                  placeholder="Nome"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Cognome</label>
+                <input
+                  type="text"
+                  value={playerForm.last_name}
+                  onChange={(e) => setPlayerForm({ ...playerForm, last_name: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
+                  placeholder="Cognome"
                 />
               </div>
 
@@ -1348,7 +1376,7 @@ export default function Admin() {
             </div>
 
             <p className="text-gray-300 mb-6">
-              Sei sicuro di voler eliminare <span className="font-bold text-white">{selectedPlayer.name}</span>?
+              Sei sicuro di voler eliminare <span className="font-bold text-white">{selectedPlayer.first_name} {selectedPlayer.last_name}</span>?
             </p>
 
             <div className="flex gap-4">

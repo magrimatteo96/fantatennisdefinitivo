@@ -83,7 +83,7 @@ export async function calculateMatchupH2H(
   // Get player details for tour (ATP/WTA)
   const { data: players } = await supabase
     .from('players')
-    .select('id, name, tour')
+    .select('id, first_name, last_name, tour')
     .in('id', allPlayerIds);
 
   const playersMap = new Map(players?.map((p) => [p.id, p]) || []);

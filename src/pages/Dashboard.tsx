@@ -291,7 +291,7 @@ export const Dashboard: React.FC = () => {
                         <div className="bg-[#ccff00] text-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
                           {squad.player?.ranking}
                         </div>
-                        <span className="text-white font-medium">{squad.player?.name}</span>
+                        <span className="text-white font-medium">{squad.player?.first_name} {squad.player?.last_name}</span>
                       </div>
                       <div className="flex items-center space-x-4">
                         <span className="text-slate-300 text-sm">{squad.player?.total_points} pts</span>
@@ -323,7 +323,7 @@ export const Dashboard: React.FC = () => {
                         <div className="bg-pink-400 text-slate-900 rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm">
                           {squad.player?.ranking}
                         </div>
-                        <span className="text-white font-medium">{squad.player?.name}</span>
+                        <span className="text-white font-medium">{squad.player?.first_name} {squad.player?.last_name}</span>
                       </div>
                       <div className="flex items-center space-x-4">
                         <span className="text-slate-300 text-sm">{squad.player?.total_points} pts</span>

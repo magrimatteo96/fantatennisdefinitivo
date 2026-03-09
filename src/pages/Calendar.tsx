@@ -119,7 +119,7 @@ export const Calendar: React.FC = () => {
                         <div className="flex items-center space-x-2">
                           {isCurrent && <Trophy className="w-4 h-4 text-[#ccff00]" />}
                           <span className={`font-semibold ${isCurrent ? 'text-[#ccff00]' : 'text-white'}`}>
-                            {tournament.name || 'Torneo Senza Nome'}
+                            {tournament.tournament_name || 'Torneo Senza Nome'}
                           </span>
                         </div>
                       </td>

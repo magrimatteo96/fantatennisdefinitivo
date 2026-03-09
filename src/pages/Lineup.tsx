@@ -614,7 +614,7 @@ export const Lineup: React.FC = () => {
             </h1>
             {currentTournament && (
               <div className="text-slate-400 text-sm">
-                {currentTournament.name} - Round {currentTournament.round_number}
+                {currentTournament.tournament_name} - Round {currentTournament.round_number}
               </div>
             )}
           </div>
@@ -642,7 +642,7 @@ export const Lineup: React.FC = () => {
             {currentTournament ? (
               <>
                 <div className="text-[#ccff00] font-bold text-xl">
-                  🏆 Torneo Attivo: {currentTournament.name}
+                  🏆 Torneo Attivo: {currentTournament.tournament_name}
                 </div>
                 <div className="text-white font-semibold text-base">
                   Peso: {currentTournament.opponents_count} | Slot Totali: {currentTournament.lineup_slots} | Singolari: {singlesCount} ATP + {singlesCount} WTA

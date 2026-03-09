@@ -115,7 +115,7 @@ export default function TournamentCalendar({ tournaments }: TournamentCalendarPr
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-bold text-lg">Round {tournament.round_number}</span>
-                    <span className="font-bold text-lg">{tournament.name}</span>
+                    <span className="font-bold text-lg">{tournament.tournament_name}</span>
                   </div>
                   <div className="text-sm opacity-80">
                     {calendarInfo && (

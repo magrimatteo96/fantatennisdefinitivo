@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 interface Tournament {
   id: string;
-  name: string;
+  tournament_name: string;
   type: string;
   round_number: number;
   opponents_count: number;
@@ -85,7 +85,7 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
 
     if (matchups.length !== expectedMatchups) {
       throw new Error(
-        `Tournament ${tournament.name}: Expected ${expectedMatchups} matchups, got ${matchups.length}`
+        `Tournament ${tournament.tournament_name}: Expected ${expectedMatchups} matchups, got ${matchups.length}`
       );
     }
 
@@ -110,11 +110,11 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
       .insert(matchupRecords);
 
     if (insertError) {
-      throw new Error(`Error inserting matchups for ${tournament.name}: ${insertError.message}`);
+      throw new Error(`Error inserting matchups for ${tournament.tournament_name}: ${insertError.message}`);
     }
 
     stats.push({
-      tournamentName: tournament.name,
+      tournamentName: tournament.tournament_name,
       roundNumber: tournament.round_number,
       opponentsCount: tournament.opponents_count,
       matchupsGenerated: matchups.length,

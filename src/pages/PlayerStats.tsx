@@ -191,7 +191,7 @@ export default function PlayerStats() {
                     className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                   >
                     <div>
-                      <h4 className="font-semibold">{result.tournament.name}</h4>
+                      <h4 className="font-semibold">{result.tournament.tournament_name}</h4>
                       <p className="text-sm text-gray-600">
                         {result.tournament.type} • Week {result.tournament.week}
                       </p>

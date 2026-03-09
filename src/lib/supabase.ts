@@ -16,7 +16,8 @@ export const supabase = createClient(
 
 export type Player = {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   tour: 'ATP' | 'WTA';
   ranking: number;
   fixed_ranking: number;
@@ -38,7 +39,7 @@ export type UserSquad = {
 
 export type Tournament = {
   id: string;
-  name: string;
+  tournament_name: string;
   type: string;
   round_number: number;
   lineup_slots: number;

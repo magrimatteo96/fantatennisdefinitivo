@@ -4,7 +4,7 @@ export async function generateWeeklyMatches(tournamentId: string, teamId: string
   try {
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('weight, name')
+      .select('weight, tournament_name')
       .eq('id', tournamentId)
       .single();
 
@@ -69,7 +69,7 @@ export async function generateWeeklyMatches(tournamentId: string, teamId: string
       return false;
     }
 
-    console.log(`✅ Created ${matchupsData.length} matchups for tournament ${tournament.name}`);
+    console.log(`✅ Created ${matchupsData.length} matchups for tournament ${tournament.tournament_name}`);
     return true;
   } catch (error) {
     console.error('Error in generateWeeklyMatches:', error);
@@ -84,7 +84,7 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
 
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('weight, name')
+      .select('weight, tournament_name')
       .eq('id', tournamentId)
       .single();
 
@@ -93,7 +93,7 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
       return false;
     }
 
-    console.log('✅ Tournament loaded:', tournament.name, 'Weight:', tournament.weight);
+    console.log('✅ Tournament loaded:', tournament.tournament_name, 'Weight:', tournament.weight);
 
     const { data: allTeams, error: teamsError } = await supabase
       .from('league_teams')
@@ -159,7 +159,7 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
         return false;
       }
 
-      console.log(`✅ SUCCESS! Created ${matchupsToCreate.length} matchups for tournament ${tournament.name}`);
+      console.log(`✅ SUCCESS! Created ${matchupsToCreate.length} matchups for tournament ${tournament.tournament_name}`);
       return true;
     } else {
       console.log('⚠️ No matchups to create (array is empty)');

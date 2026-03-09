@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFantasy } from '../context/FantasyContext';
 import { ShoppingCart, Plus, Minus, Search, DollarSign, TrendingUp, X } from 'lucide-react';
-import { Player } from '../lib/supabase';
+import { Player, supabase } from '../lib/supabase';
 import { PlayerAvatar } from '../components/PlayerAvatar';
 import { CountryFlag } from '../components/CountryFlag';
 
@@ -11,9 +11,26 @@ export const Market: React.FC = () => {
   const [tourFilter, setTourFilter] = useState<'ALL' | 'ATP' | 'WTA'>('ALL');
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [auctionPrice, setAuctionPrice] = useState('');
+  const [ownedPlayerIds, setOwnedPlayerIds] = useState<Set<string>>(new Set());
 
   console.log('🎯 Market: Received players:', players.length);
   console.log('🎯 Market: mySquad:', mySquad.length);
+
+  useEffect(() => {
+    loadOwnedPlayers();
+  }, []);
+
+  const loadOwnedPlayers = async () => {
+    const { data } = await supabase
+      .from('team_players')
+      .select('player_id');
+
+    if (data) {
+      const playerIdSet = new Set(data.map(tp => tp.player_id));
+      setOwnedPlayerIds(playerIdSet);
+      console.log('🔒 Market: Owned players loaded:', playerIdSet.size);
+    }
+  };
 
   const mySquadPlayerIds = mySquad.map(s => s.player_id);
   const atpCount = mySquad.filter(s => s.player?.category === 'ATP').length;
@@ -30,9 +47,11 @@ export const Market: React.FC = () => {
   console.log('🎯 Market: Filtered players:', filteredPlayers.length);
 
   const isPlayerInSquad = (playerId: string) => mySquadPlayerIds.includes(playerId);
+  const isPlayerOwned = (playerId: string) => ownedPlayerIds.has(playerId);
 
   const canAddPlayer = (player: Player) => {
     if (isPlayerInSquad(player.id)) return false;
+    if (isPlayerOwned(player.id)) return false;
     if (player.category === 'ATP' && atpCount >= 10) return false;
     if (player.category === 'WTA' && wtaCount >= 10) return false;
     return true;
@@ -64,12 +83,14 @@ export const Market: React.FC = () => {
 
     const success = await addPlayerToSquad(selectedPlayer.id, price);
     if (success) {
+      await loadOwnedPlayers();
       handleCloseAuctionModal();
     }
   };
 
   const handleRemovePlayer = async (playerId: string) => {
     await removePlayerFromSquad(playerId);
+    await loadOwnedPlayers();
   };
 
   return (
@@ -132,6 +153,7 @@ export const Market: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {filteredPlayers.map(player => {
             const inSquad = isPlayerInSquad(player.id);
+            const owned = isPlayerOwned(player.id);
             const canAdd = canAddPlayer(player);
 
             return (
@@ -140,6 +162,8 @@ export const Market: React.FC = () => {
                 className={`bg-slate-800 rounded-xl p-4 border-2 transition-all ${
                   inSquad
                     ? 'border-[#ccff00] bg-opacity-90'
+                    : owned
+                    ? 'border-orange-500 opacity-60'
                     : 'border-slate-600 hover:border-slate-500'
                 }`}
               >
@@ -165,6 +189,11 @@ export const Market: React.FC = () => {
                           {player.category}
                         </span>
                         <span className="text-slate-400 text-sm">#{player.ranking}</span>
+                        {owned && !inSquad && (
+                          <span className="px-2 py-1 rounded text-xs font-semibold bg-orange-500 text-white">
+                            OWNED
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center space-x-4 mt-1">
                         <div className="flex items-center space-x-1 text-slate-400 text-sm">

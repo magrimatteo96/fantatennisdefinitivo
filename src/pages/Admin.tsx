@@ -28,7 +28,7 @@ type SuperAdminTab = 'matchdays' | 'playerslist' | 'playerpoints' | 'bulkupload'
 type LeagueTab = 'setup' | 'matchups';
 
 export default function Admin() {
-  const { generateMockRoster, generateAllMockRosters, setImpersonatedTeam, impersonatedTeamId, currentTournament } = useFantasy();
+  const { generateMockRoster, generateAllMockRosters, setImpersonatedTeam, impersonatedTeamId, currentTournament, isAdmin } = useFantasy();
   const [players, setPlayers] = useState<Player[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
@@ -375,12 +375,19 @@ export default function Admin() {
     setLoading(true);
     try {
       for (const team of teams) {
+        console.log('🎲 Generating roster for team:', team.name, 'ID:', team.id);
+        if (!team.id || typeof team.id !== 'string') {
+          console.error('❌ Invalid team ID:', team);
+          throw new Error(`Invalid team ID for ${team.name}`);
+        }
         await generateMockRoster(team.id);
       }
       alert('✅ Roster di test generati per tutte le squadre!');
       await loadTeams();
-    } catch (error) {
-      alert('Errore generazione roster test');
+    } catch (error: any) {
+      const errorMsg = `Errore generazione roster test: ${error.message}`;
+      alert(errorMsg);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -560,7 +567,9 @@ export default function Admin() {
         .single();
 
       if (createError) throw createError;
+      if (!newTeam || !newTeam.id) throw new Error('Team creation failed - no ID returned');
 
+      console.log('✅ Created team:', newTeam.name, 'with ID:', newTeam.id);
       await generateMockRoster(newTeam.id);
 
       alert(`Squadra "${teamName}" creata con 20 giocatori!`);
@@ -1093,57 +1102,59 @@ export default function Admin() {
                 )}
               </div>
 
-              <div className="bg-gray-800 rounded-lg p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Quick Actions</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    onClick={handleCreateTestTeam}
-                    disabled={loading}
-                    className="px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
-                  >
-                    <Plus className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    Crea Squadra Test + Roster
-                  </button>
+              {isAdmin && (
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-white mb-4">Quick Actions (Admin Only)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                      onClick={handleCreateTestTeam}
+                      disabled={loading}
+                      className="px-6 py-4 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-500 hover:to-emerald-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
+                    >
+                      <Plus className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                      Crea Squadra Test + Roster
+                    </button>
 
-                  <button
-                    onClick={async () => {
-                      setLoading(true);
-                      setError(null);
-                      try {
-                        await generateAllMockRosters();
-                        await loadTeams();
-                      } catch (err: any) {
-                        setError(`Errore: ${err.message}`);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                    disabled={loading}
-                    className="px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
-                  >
-                    <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                    Popola TUTTE le Squadre
-                  </button>
+                    <button
+                      onClick={async () => {
+                        setLoading(true);
+                        setError(null);
+                        try {
+                          await generateAllMockRosters();
+                          await loadTeams();
+                        } catch (err: any) {
+                          setError(`Errore: ${err.message}`);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                      disabled={loading}
+                      className="px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold shadow-lg"
+                    >
+                      <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                      Popola TUTTE le Squadre
+                    </button>
 
-                  <button
-                    onClick={handleResetLeague}
-                    disabled={loading}
-                    className="px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
-                  >
-                    <RefreshCw className="w-5 h-5" />
-                    Reset League Completo
-                  </button>
+                    <button
+                      onClick={handleResetLeague}
+                      disabled={loading}
+                      className="px-6 py-4 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
+                    >
+                      <RefreshCw className="w-5 h-5" />
+                      Reset League Completo
+                    </button>
+                  </div>
+
+                  <div className="mt-6 p-4 bg-gray-700 rounded-lg">
+                    <h4 className="text-white font-semibold mb-2">Guida Rapida</h4>
+                    <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
+                      <li>Crea Squadra Test: Crea una nuova squadra con 20 giocatori casuali pre-assegnati</li>
+                      <li>Popola TUTTE: Assegna 20 giocatori a tutte le squadre esistenti (10 ATP + 10 WTA)</li>
+                      <li>Reset League: Cancella tutti i roster e ricomincia da zero</li>
+                    </ul>
+                  </div>
                 </div>
-
-                <div className="mt-6 p-4 bg-gray-700 rounded-lg">
-                  <h4 className="text-white font-semibold mb-2">Guida Rapida</h4>
-                  <ul className="text-gray-300 text-sm space-y-1 list-disc list-inside">
-                    <li>Crea Squadra Test: Crea una nuova squadra con 20 giocatori casuali pre-assegnati</li>
-                    <li>Popola TUTTE: Assegna 20 giocatori a tutte le squadre esistenti (10 ATP + 10 WTA)</li>
-                    <li>Reset League: Cancella tutti i roster e ricomincia da zero</li>
-                  </ul>
-                </div>
-              </div>
+              )}
 
               <div className="bg-gray-800 rounded-lg p-6 mt-6">
                 <div className="flex items-center justify-between mb-4">

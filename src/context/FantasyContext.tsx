@@ -11,6 +11,7 @@ interface FantasyContextType {
   budgetRemaining: number;
   loading: boolean;
   impersonatedTeamId: string | null;
+  isAdmin: boolean;
   refreshSquad: () => Promise<void>;
   refreshPlayers: () => Promise<void>;
   refreshTournament: () => Promise<void>;
@@ -754,6 +755,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
   };
 
   const budgetRemaining = standing?.budget_remaining ?? 1000;
+  const isAdmin = isDevelopmentMode && user?.id === MOCK_ADMIN_USER.id;
 
   const setImpersonatedTeam = (teamId: string | null) => {
     setImpersonatedTeamId(teamId);
@@ -782,6 +784,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         budgetRemaining,
         loading,
         impersonatedTeamId,
+        isAdmin,
         refreshSquad,
         refreshPlayers,
         refreshTournament,

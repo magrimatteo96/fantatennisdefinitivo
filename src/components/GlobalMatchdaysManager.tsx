@@ -133,10 +133,12 @@ export default function GlobalMatchdaysManager() {
     await loadMatchdays();
   };
 
-  const getTypeLabel = (type: string) => {
-    if (type.includes('SLAM')) return '🏆 SLAM (3 match)';
-    if (type.includes('1000') || type.includes('MASTER')) return '⭐ Master 1000 (2 match)';
-    if (type.includes('500')) return '🎾 ATP 500 (1 match)';
+  const getTypeLabel = (type: string | null | undefined) => {
+    if (!type) return '🎾 Tournament';
+    const typeUpper = type.toUpperCase();
+    if (typeUpper.includes('SLAM')) return '🏆 SLAM (3 match)';
+    if (typeUpper.includes('1000') || typeUpper.includes('MASTER')) return '⭐ Master 1000 (2 match)';
+    if (typeUpper.includes('500')) return '🎾 ATP 500 (1 match)';
     return '🎾 ATP 250 (1 match)';
   };
 
@@ -183,7 +185,7 @@ export default function GlobalMatchdaysManager() {
         <div className="bg-green-900/30 border border-green-500 rounded-lg p-4">
           <div className="flex items-center gap-2 text-green-400 font-semibold">
             <Play className="w-5 h-5" />
-            Giornata Attiva: Round {activeMatchday.round_number} - {activeMatchday.name}
+            Giornata Attiva: Round {activeMatchday.round_number ?? '?'} - {activeMatchday.name ?? 'Unknown'}
           </div>
           <p className="text-gray-300 text-sm mt-1">
             {getTypeLabel(activeMatchday.type)}
@@ -230,16 +232,16 @@ export default function GlobalMatchdaysManager() {
                     className={`hover:bg-gray-700/50 ${matchday.is_active ? 'bg-green-900/20' : ''}`}
                   >
                     <td className="px-4 py-3 text-white font-semibold">
-                      {matchday.round_number}
+                      {matchday.round_number ?? '-'}
                     </td>
                     <td className="px-4 py-3 text-gray-200">
-                      {matchday.name}
+                      {matchday.name ?? 'Unknown Tournament'}
                     </td>
                     <td className="px-4 py-3 text-gray-300 text-sm">
                       {getTypeLabel(matchday.type)}
                     </td>
                     <td className="px-4 py-3 text-center text-gray-200">
-                      {matchday.opponents_count}
+                      {matchday.opponents_count ?? 0}
                     </td>
                     <td className="px-4 py-3 text-center">
                       {matchday.is_active ? (

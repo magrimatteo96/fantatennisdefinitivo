@@ -54,12 +54,12 @@ export const Lineup: React.FC = () => {
   const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA').map(s => s.player!);
 
   const getTournamentType = (): TournamentType => {
-    if (!currentTournament) return '1000';
+    if (!currentTournament || !currentTournament.type) return '1000';
     const type = currentTournament.type.toUpperCase();
-    if (type === 'SLAM') return 'SLAM';
-    if (type === '1000' || type === 'MASTER 1000' || type === 'MASTER') return '1000';
-    if (type === '500') return '500';
-    if (type === '250') return '250';
+    if (type.includes('SLAM')) return 'SLAM';
+    if (type.includes('1000') || type.includes('MASTER')) return '1000';
+    if (type.includes('500')) return '500';
+    if (type.includes('250')) return '250';
     return '1000';
   };
 
@@ -614,7 +614,7 @@ export const Lineup: React.FC = () => {
             </h1>
             {currentTournament && (
               <div className="text-slate-400 text-sm">
-                {currentTournament.tournament_name}
+                {currentTournament.tournament_name ?? 'Unknown Tournament'}
               </div>
             )}
           </div>
@@ -642,10 +642,10 @@ export const Lineup: React.FC = () => {
             {currentTournament ? (
               <>
                 <div className="text-[#ccff00] font-bold text-xl">
-                  🏆 Torneo Attivo: {currentTournament.tournament_name}
+                  🏆 Torneo Attivo: {currentTournament.tournament_name ?? 'Unknown'}
                 </div>
                 <div className="text-white font-semibold text-base">
-                  Peso: {currentTournament.opponents_count} | Slot Totali: {currentTournament.lineup_slots} | Singolari: {singlesCount} ATP + {singlesCount} WTA
+                  Peso: {currentTournament.opponents_count ?? 0} | Slot Totali: {currentTournament.lineup_slots ?? 0} | Singolari: {singlesCount} ATP + {singlesCount} WTA
                 </div>
                 <div className="text-slate-300 text-sm">
                   📋 Modulo: {getModuleDescription()}

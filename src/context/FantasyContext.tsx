@@ -752,6 +752,14 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     console.log(`📋 Found ${allTeams.length} teams to populate`);
 
+    // Clear ALL existing team players first
+    console.log('🧹 Clearing all existing team rosters...');
+    await supabase.from('team_players').delete().neq('team_id', '00000000-0000-0000-0000-000000000000');
+
+    // Reset all team credits to 1000
+    console.log('💰 Resetting all team credits to 1000...');
+    await supabase.from('league_teams').update({ credits: 1000 }).neq('id', '00000000-0000-0000-0000-000000000000');
+
     // Get all available players
     const { data: allAtpPlayers } = await supabase
       .from('players')
@@ -765,68 +773,103 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       .eq('tour', 'WTA')
       .order('fixed_ranking');
 
-    if (!allAtpPlayers || allAtpPlayers.length < 10 || !allWtaPlayers || allWtaPlayers.length < 10) {
-      alert('Not enough players in database (need at least 10 ATP and 10 WTA)');
+    if (!allAtpPlayers || allAtpPlayers.length < 10 * allTeams.length) {
+      alert(`Not enough ATP players (need ${10 * allTeams.length}, have ${allAtpPlayers?.length || 0})`);
       return;
     }
 
-    // Create a pool of available players for each team
-    const availableAtpPlayers = [...allAtpPlayers];
-    const availableWtaPlayers = [...allWtaPlayers];
+    if (!allWtaPlayers || allWtaPlayers.length < 10 * allTeams.length) {
+      alert(`Not enough WTA players (need ${10 * allTeams.length}, have ${allWtaPlayers?.length || 0})`);
+      return;
+    }
+
+    // Shuffle all players to randomize distribution
+    const shuffledAtpPlayers = [...allAtpPlayers].sort(() => Math.random() - 0.5);
+    const shuffledWtaPlayers = [...allWtaPlayers].sort(() => Math.random() - 0.5);
+
+    // Track globally owned players across all teams
+    const globalOwnedPlayerIds = new Set<string>();
 
     let successCount = 0;
     let failCount = 0;
 
-    // Process each team
+    // Process each team sequentially
     for (const team of allTeams) {
       console.log(`🎲 Generating roster for team: ${team.name} (${team.id})`);
 
-      // Clear existing players for this team
-      await supabase
-        .from('team_players')
-        .delete()
-        .eq('team_id', team.id);
+      let teamCredits = 1000;
+      let teamSuccessCount = 0;
 
-      // Select 10 ATP players randomly from available pool
-      const selectedAtp = [];
-      const atpPoolCopy = [...availableAtpPlayers].sort(() => Math.random() - 0.5);
+      // Get available ATP players (not yet owned globally)
+      const availableAtp = shuffledAtpPlayers.filter(p => !globalOwnedPlayerIds.has(p.id));
 
-      for (let i = 0; i < Math.min(10, atpPoolCopy.length); i++) {
-        selectedAtp.push(atpPoolCopy[i]);
+      // Get available WTA players (not yet owned globally)
+      const availableWta = shuffledWtaPlayers.filter(p => !globalOwnedPlayerIds.has(p.id));
+
+      console.log(`  📊 Available: ${availableAtp.length} ATP, ${availableWta.length} WTA`);
+
+      if (availableAtp.length < 10) {
+        console.error(`❌ Not enough available ATP players for ${team.name}`);
+        failCount++;
+        continue;
       }
 
-      // Select 10 WTA players randomly from available pool
-      const selectedWta = [];
-      const wtaPoolCopy = [...availableWtaPlayers].sort(() => Math.random() - 0.5);
-
-      for (let i = 0; i < Math.min(10, wtaPoolCopy.length); i++) {
-        selectedWta.push(wtaPoolCopy[i]);
+      if (availableWta.length < 10) {
+        console.error(`❌ Not enough available WTA players for ${team.name}`);
+        failCount++;
+        continue;
       }
 
-      // Insert all 20 players
+      // Select 10 ATP players
+      const selectedAtp = availableAtp.slice(0, 10);
+
+      // Select 10 WTA players
+      const selectedWta = availableWta.slice(0, 10);
+
       const allSelectedPlayers = [...selectedAtp, ...selectedWta];
-      const insertPromises = allSelectedPlayers.map(player =>
-        supabase
+
+      // Insert players one by one with retry logic
+      for (const player of allSelectedPlayers) {
+        const auctionPrice = Math.floor(Math.random() * 40) + 10;
+
+        if (teamCredits < auctionPrice) {
+          console.warn(`  ⚠️ Not enough credits for ${player.first_name} ${player.last_name}`);
+          continue;
+        }
+
+        const { error } = await supabase
           .from('team_players')
           .insert({
             team_id: team.id,
             player_id: player.id,
-            auction_price: Math.floor(Math.random() * 50) + 10 // Random price 10-60
-          })
-      );
+            auction_price: auctionPrice
+          });
 
-      const results = await Promise.all(insertPromises);
-      const errors = results.filter(r => r.error);
+        if (error) {
+          if (error.message?.includes('duplicate') || error.code === '23505') {
+            console.warn(`  ⚠️ ${player.first_name} ${player.last_name} already owned (conflict)`);
+          } else {
+            console.error(`  ❌ Failed to add ${player.first_name} ${player.last_name}:`, error.message);
+          }
+        } else {
+          teamCredits -= auctionPrice;
+          globalOwnedPlayerIds.add(player.id);
+          teamSuccessCount++;
+        }
+      }
 
-      if (errors.length > 0) {
-        console.error(`❌ Error populating team ${team.name} - error count:`, errors.length);
-        errors.forEach((err, idx) => {
-          console.error(`  Error ${idx + 1}:`, err.error?.message);
-        });
-        failCount++;
-      } else {
-        console.log(`✅ Team ${team.name} populated with 20 players`);
+      // Update team credits in database
+      await supabase
+        .from('league_teams')
+        .update({ credits: teamCredits })
+        .eq('id', team.id);
+
+      if (teamSuccessCount === 20) {
+        console.log(`✅ Team ${team.name} populated with 20 players (${teamCredits} credits remaining)`);
         successCount++;
+      } else {
+        console.error(`❌ Team ${team.name} only got ${teamSuccessCount}/20 players`);
+        failCount++;
       }
     }
 

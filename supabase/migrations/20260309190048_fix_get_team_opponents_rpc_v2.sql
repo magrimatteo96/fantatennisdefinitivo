@@ -76,3 +76,7 @@ BEGIN
   ORDER BY matchup_id;
 END;
 $$;
+
+-- Grant execute permissions to authenticated and anon users
+GRANT EXECUTE ON FUNCTION get_team_opponents_in_tournament(uuid, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION get_team_opponents_in_tournament(uuid, uuid) TO anon;

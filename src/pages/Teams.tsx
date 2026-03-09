@@ -85,7 +85,7 @@ export default function Teams() {
 
     const teamsWithRosters = await Promise.all(
       teamsData.map(async (team) => {
-        const { data: playerData } = await supabase
+        const { data: playerData, error: playerError } = await supabase
           .from('team_players')
           .select(`
             id,
@@ -94,8 +94,9 @@ export default function Teams() {
             player_id,
             players (
               id,
-              name,
-              tour,
+              first_name,
+              last_name,
+              category,
               ranking,
               price,
               country,
@@ -104,17 +105,25 @@ export default function Teams() {
           `)
           .eq('team_id', team.id);
 
-        const players: TeamPlayer[] = playerData?.map(tp => ({
-          id: tp.players.id,
-          name: tp.players.name,
-          tour: tp.players.tour as 'ATP' | 'WTA',
-          ranking: tp.players.ranking,
-          price: tp.players.price,
-          country: tp.players.country,
-          image_url: tp.players.image_url,
-          auction_price: tp.auction_price,
-          acquired_at: tp.acquired_at,
-        })) || [];
+        if (playerError) {
+          console.error('Error loading players for team', team.name, playerError);
+        }
+
+        const players: TeamPlayer[] = playerData?.map(tp => {
+          if (!tp.players) return null;
+          return {
+            id: tp.players.id,
+            first_name: tp.players.first_name || '',
+            last_name: tp.players.last_name || '',
+            category: tp.players.category as 'ATP' | 'WTA',
+            ranking: tp.players.ranking || 999,
+            price: tp.players.price || 0,
+            country: tp.players.country,
+            image_url: tp.players.image_url,
+            auction_price: tp.auction_price || 0,
+            acquired_at: tp.acquired_at,
+          };
+        }).filter(p => p !== null) as TeamPlayer[] || [];
 
         const atpPlayers = players.filter(p => p.category === 'ATP').sort((a, b) => a.ranking - b.ranking);
         const wtaPlayers = players.filter(p => p.category === 'WTA').sort((a, b) => a.ranking - b.ranking);
@@ -167,7 +176,7 @@ export default function Teams() {
     const { data: allPlayers } = await supabase
       .from('players')
       .select('*')
-      .ilike('name', `%${searchQuery}%`)
+      .or(`first_name.ilike.%${searchQuery}%,last_name.ilike.%${searchQuery}%`)
       .order('ranking', { ascending: true })
       .limit(50);
 

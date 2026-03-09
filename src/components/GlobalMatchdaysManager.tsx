@@ -135,7 +135,7 @@ export default function GlobalMatchdaysManager() {
 
   const getTypeLabel = (type: string | null | undefined) => {
     if (!type) return '🎾 Tournament';
-    const typeUpper = type.toUpperCase();
+    const typeUpper = type?.toUpperCase() ?? '';
     if (typeUpper.includes('SLAM')) return '🏆 SLAM (3 match)';
     if (typeUpper.includes('1000') || typeUpper.includes('MASTER')) return '⭐ Master 1000 (2 match)';
     if (typeUpper.includes('500')) return '🎾 ATP 500 (1 match)';

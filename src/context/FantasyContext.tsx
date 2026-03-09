@@ -288,15 +288,31 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
     console.log('🔍 loadStanding: Loading standing for user:', user.id);
 
-    // Load from league_teams instead of standings
-    const { data: teamData, error: teamError } = await supabase
-      .from('league_teams')
-      .select('id, name, credits')
-      .eq('user_id', user.id)
-      .maybeSingle();
+    // Load from league_teams - handle impersonation
+    let teamData = null;
+    if (impersonatedTeamId) {
+      console.log('👤 IMPERSONATION MODE: Loading standing for team:', impersonatedTeamId);
+      const { data, error: teamError } = await supabase
+        .from('league_teams')
+        .select('id, name, credits')
+        .eq('id', impersonatedTeamId)
+        .maybeSingle();
 
-    if (teamError) {
-      console.error('❌ loadStanding: Error loading team:', teamError);
+      if (teamError) {
+        console.error('❌ loadStanding: Error loading impersonated team:', teamError);
+      }
+      teamData = data;
+    } else {
+      const { data, error: teamError } = await supabase
+        .from('league_teams')
+        .select('id, name, credits')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (teamError) {
+        console.error('❌ loadStanding: Error loading team:', teamError);
+      }
+      teamData = data;
     }
 
     if (!teamData) {

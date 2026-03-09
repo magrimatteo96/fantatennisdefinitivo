@@ -96,6 +96,7 @@ export const Calendar: React.FC = () => {
               <tbody>
                 {tournaments.map((tournament, index) => {
                   const isCurrent = isCurrentTournament(tournament);
+                  const roundNumber = index + 1;
                   return (
                     <tr
                       key={tournament.id}
@@ -106,7 +107,7 @@ export const Calendar: React.FC = () => {
                       <td className="p-4">
                         <div className="flex items-center space-x-2">
                           <span className={`text-sm font-bold ${isCurrent ? 'text-[#ccff00]' : 'text-slate-400'}`}>
-                            #{tournament.round_number}
+                            #{roundNumber}
                           </span>
                           {isCurrent && (
                             <span className="px-2 py-0.5 bg-[#ccff00] text-slate-900 text-xs font-bold rounded">

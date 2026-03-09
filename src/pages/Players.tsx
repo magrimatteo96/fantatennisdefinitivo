@@ -5,8 +5,9 @@ import { CountryFlag } from '../components/CountryFlag';
 
 interface Player {
   id: string;
-  name: string;
-  tour: 'ATP' | 'WTA';
+  first_name: string;
+  last_name: string;
+  category: 'ATP' | 'WTA';
   ranking: number;
   fixed_ranking: number;
   price: number;
@@ -44,8 +45,9 @@ export const Players: React.FC = () => {
 
   const filteredPlayers = players
     .filter(player => {
-      const matchesSearch = player.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesTour = tourFilter === 'ALL' || player.tour === tourFilter;
+      const fullName = `${player.first_name} ${player.last_name}`.toLowerCase();
+      const matchesSearch = fullName.includes(searchTerm.toLowerCase());
+      const matchesTour = tourFilter === 'ALL' || player.category === tourFilter;
       return matchesSearch && matchesTour;
     })
     .sort((a, b) => {
@@ -60,8 +62,8 @@ export const Players: React.FC = () => {
       }
     });
 
-  const atpCount = players.filter(p => p.tour === 'ATP').length;
-  const wtaCount = players.filter(p => p.tour === 'WTA').length;
+  const atpCount = players.filter(p => p.category === 'ATP').length;
+  const wtaCount = players.filter(p => p.category === 'WTA').length;
 
   if (loading) {
     return (
@@ -170,7 +172,7 @@ export const Players: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-lg font-semibold text-white">
-                        {player.name}
+                        {player.first_name} {player.last_name}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -181,12 +183,12 @@ export const Players: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <span
                         className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
-                          player.tour === 'ATP'
+                          player.category === 'ATP'
                             ? 'bg-blue-900 text-blue-300'
                             : 'bg-pink-900 text-pink-300'
                         }`}
                       >
-                        {player.tour}
+                        {player.category}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">

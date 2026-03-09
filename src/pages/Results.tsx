@@ -13,8 +13,9 @@ interface Tournament {
 
 interface Player {
   id: string;
-  name: string;
-  tour: string;
+  first_name: string;
+  last_name: string;
+  category: string;
   ranking: number;
 }
 
@@ -242,7 +243,7 @@ export default function Results() {
                   <option value="">Select player...</option>
                   {players.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} ({p.tour} #{p.ranking})
+                      {p.first_name} {p.last_name} ({p.category} #{p.ranking})
                     </option>
                   ))}
                 </select>

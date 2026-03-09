@@ -50,8 +50,8 @@ export const Lineup: React.FC = () => {
 
   console.log('Lineup rendered, formation is:', formation);
 
-  const atpPlayers = mySquad.filter(s => s.player?.tour === 'ATP').map(s => s.player!);
-  const wtaPlayers = mySquad.filter(s => s.player?.tour === 'WTA').map(s => s.player!);
+  const atpPlayers = mySquad.filter(s => s.player?.category === 'ATP').map(s => s.player!);
+  const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA').map(s => s.player!);
 
   const getTournamentType = (): TournamentType => {
     if (!currentTournament) return '1000';
@@ -614,7 +614,7 @@ export const Lineup: React.FC = () => {
             </h1>
             {currentTournament && (
               <div className="text-slate-400 text-sm">
-                {currentTournament.tournament_name} - Round {currentTournament.round_number}
+                {currentTournament.tournament_name}
               </div>
             )}
           </div>
@@ -1090,7 +1090,7 @@ export const Lineup: React.FC = () => {
               .sort((a, b) => (a.fixed_ranking || a.ranking) - (b.fixed_ranking || b.ranking))
               .map(p => (
                 <option key={p.id} value={p.id}>
-                  [{p.tour}] #{p.fixed_ranking || p.ranking} {p.name}
+                  [{p.category}] #{p.fixed_ranking || p.ranking} {p.first_name} {p.last_name}
                 </option>
               ))}
           </select>

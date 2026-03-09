@@ -13,8 +13,9 @@ interface LeagueTeam {
 
 interface Player {
   id: string;
-  name: string;
-  tour: 'ATP' | 'WTA';
+  first_name: string;
+  last_name: string;
+  category: 'ATP' | 'WTA';
   ranking: number;
   price: number;
   country?: string;
@@ -115,8 +116,8 @@ export default function Teams() {
           acquired_at: tp.acquired_at,
         })) || [];
 
-        const atpPlayers = players.filter(p => p.tour === 'ATP').sort((a, b) => a.ranking - b.ranking);
-        const wtaPlayers = players.filter(p => p.tour === 'WTA').sort((a, b) => a.ranking - b.ranking);
+        const atpPlayers = players.filter(p => p.category === 'ATP').sort((a, b) => a.ranking - b.ranking);
+        const wtaPlayers = players.filter(p => p.category === 'WTA').sort((a, b) => a.ranking - b.ranking);
         const totalSpent = players.reduce((sum, p) => sum + p.auction_price, 0);
 
         return {
@@ -192,11 +193,11 @@ export default function Teams() {
     const atpCount = selectedTeam.atpPlayers.length;
     const wtaCount = selectedTeam.wtaPlayers.length;
 
-    if (player.tour === 'ATP' && atpCount >= 10) {
+    if (player.category === 'ATP' && atpCount >= 10) {
       alert('Questa squadra ha già 10 giocatori ATP');
       return;
     }
-    if (player.tour === 'WTA' && wtaCount >= 10) {
+    if (player.category === 'WTA' && wtaCount >= 10) {
       alert('Questa squadra ha già 10 giocatrici WTA');
       return;
     }
@@ -395,9 +396,9 @@ export default function Teams() {
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
                   >
                     <div>
-                      <div className="font-semibold">{player.name}</div>
+                      <div className="font-semibold">{`${player.first_name} ${player.last_name}`}</div>
                       <div className="text-sm text-gray-600">
-                        {player.tour} • Ranking: {player.ranking}
+                        {player.category} • Ranking: {player.ranking}
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
@@ -441,15 +442,15 @@ export default function Teams() {
                   >
                     <div className="flex items-center gap-3">
                       <PlayerAvatar
-                        name={player.name}
-                        tour={player.tour}
+                        name={`${player.first_name} ${player.last_name}`}
+                        tour={player.category}
                         imageUrl={player.image_url}
                         size="lg"
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <CountryFlag countryCode={player.country || 'XX'} size="md" />
-                          <div className="font-bold text-gray-800">{player.name}</div>
+                          <div className="font-bold text-gray-800">{`${player.first_name} ${player.last_name}`}</div>
                           {index === 0 && (
                             <Crown className="w-5 h-5 text-yellow-500" title="Capitano" />
                           )}
@@ -494,15 +495,15 @@ export default function Teams() {
                   >
                     <div className="flex items-center gap-3">
                       <PlayerAvatar
-                        name={player.name}
-                        tour={player.tour}
+                        name={`${player.first_name} ${player.last_name}`}
+                        tour={player.category}
                         imageUrl={player.image_url}
                         size="lg"
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
                           <CountryFlag countryCode={player.country || 'XX'} size="md" />
-                          <div className="font-bold text-gray-800">{player.name}</div>
+                          <div className="font-bold text-gray-800">{`${player.first_name} ${player.last_name}`}</div>
                           {index === 0 && (
                             <Crown className="w-5 h-5 text-yellow-500" title="Capitano" />
                           )}

@@ -80,10 +80,10 @@ export async function calculateMatchupH2H(
     (playerPoints || []).map((p) => [p.player_id, p.points])
   );
 
-  // Get player details for tour (ATP/WTA)
+  // Get player details for category (ATP/WTA)
   const { data: players } = await supabase
     .from('players')
-    .select('id, first_name, last_name, tour')
+    .select('id, first_name, last_name, category')
     .in('id', allPlayerIds);
 
   const playersMap = new Map(players?.map((p) => [p.id, p]) || []);

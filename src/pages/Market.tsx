@@ -16,14 +16,14 @@ export const Market: React.FC = () => {
   console.log('🎯 Market: mySquad:', mySquad.length);
 
   const mySquadPlayerIds = mySquad.map(s => s.player_id);
-  const atpCount = mySquad.filter(s => s.player?.tour === 'ATP').length;
-  const wtaCount = mySquad.filter(s => s.player?.tour === 'WTA').length;
+  const atpCount = mySquad.filter(s => s.player?.category === 'ATP').length;
+  const wtaCount = mySquad.filter(s => s.player?.category === 'WTA').length;
 
   const filteredPlayers = players.filter(player => {
     const fullName = `${player.first_name} ${player.last_name}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          player.ranking.toString().includes(searchTerm);
-    const matchesTour = tourFilter === 'ALL' || player.tour === tourFilter;
+    const matchesTour = tourFilter === 'ALL' || player.category === tourFilter;
     return matchesSearch && matchesTour;
   });
 
@@ -33,8 +33,8 @@ export const Market: React.FC = () => {
 
   const canAddPlayer = (player: Player) => {
     if (isPlayerInSquad(player.id)) return false;
-    if (player.tour === 'ATP' && atpCount >= 10) return false;
-    if (player.tour === 'WTA' && wtaCount >= 10) return false;
+    if (player.category === 'ATP' && atpCount >= 10) return false;
+    if (player.category === 'WTA' && wtaCount >= 10) return false;
     return true;
   };
 
@@ -147,7 +147,7 @@ export const Market: React.FC = () => {
                   <div className="flex items-center space-x-4 flex-1">
                     <PlayerAvatar
                       name={`${player.first_name} ${player.last_name}`}
-                      tour={player.tour}
+                      tour={player.category}
                       imageUrl={player.image_url}
                       size="lg"
                     />
@@ -157,12 +157,12 @@ export const Market: React.FC = () => {
                         <h3 className="text-white font-bold text-lg">{player.first_name} {player.last_name}</h3>
                         <span
                           className={`px-2 py-1 rounded text-xs font-semibold ${
-                            player.tour === 'ATP'
+                            player.category === 'ATP'
                               ? 'bg-[#ccff00] text-slate-900'
                               : 'bg-pink-400 text-slate-900'
                           }`}
                         >
-                          {player.tour}
+                          {player.category}
                         </span>
                         <span className="text-slate-400 text-sm">#{player.ranking}</span>
                       </div>
@@ -227,7 +227,7 @@ export const Market: React.FC = () => {
             <div className="text-center mb-6">
               <div
                 className={`rounded-full w-16 h-16 flex items-center justify-center font-bold text-2xl mx-auto mb-4 ${
-                  selectedPlayer.tour === 'ATP'
+                  selectedPlayer.category === 'ATP'
                     ? 'bg-[#ccff00] text-slate-900'
                     : 'bg-pink-400 text-slate-900'
                 }`}
@@ -237,12 +237,12 @@ export const Market: React.FC = () => {
               <h2 className="text-2xl font-bold text-white mb-1">{selectedPlayer.first_name} {selectedPlayer.last_name}</h2>
               <span
                 className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                  selectedPlayer.tour === 'ATP'
+                  selectedPlayer.category === 'ATP'
                     ? 'bg-[#ccff00] text-slate-900'
                     : 'bg-pink-400 text-slate-900'
                 }`}
               >
-                {selectedPlayer.tour}
+                {selectedPlayer.category}
               </span>
             </div>
 

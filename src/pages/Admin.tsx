@@ -10,7 +10,7 @@ interface Player {
   id: string;
   first_name: string;
   last_name: string;
-  tour: 'ATP' | 'WTA';
+  category: 'ATP' | 'WTA';
   total_points: number;
   ranking?: number;
   price: number;
@@ -48,7 +48,7 @@ export default function Admin() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
-  const [playerForm, setPlayerForm] = useState({ first_name: '', last_name: '', tour: 'ATP' as 'ATP' | 'WTA', ranking: 1, price: 50 });
+  const [playerForm, setPlayerForm] = useState({ first_name: '', last_name: '', category: 'ATP' as 'ATP' | 'WTA', ranking: 1, price: 50 });
 
   const [tournaments, setTournaments] = useState<any[]>([]);
 
@@ -75,7 +75,7 @@ export default function Admin() {
   const loadPlayers = async () => {
     const { data, error } = await supabase
       .from('players')
-      .select('id, first_name, last_name, tour, total_points, ranking, price')
+      .select('id, first_name, last_name, category, total_points, ranking, price')
       .order('ranking', { ascending: true });
 
     if (error) {
@@ -427,7 +427,7 @@ export default function Admin() {
         {
           first_name: playerForm.first_name.trim(),
           last_name: playerForm.last_name.trim(),
-          tour: playerForm.tour,
+          tour: playerForm.category,
           ranking: playerForm.ranking,
           price: playerForm.price,
           total_points: 0
@@ -436,7 +436,7 @@ export default function Admin() {
 
       alert('✅ Giocatore aggiunto!');
       setShowAddModal(false);
-      setPlayerForm({ first_name: '', last_name: '', tour: 'ATP', ranking: 1, price: 50 });
+      setPlayerForm({ first_name: '', last_name: '', category: 'ATP', ranking: 1, price: 50 });
       await loadPlayers();
     } catch (error) {
       alert('Errore aggiunta giocatore');
@@ -455,7 +455,7 @@ export default function Admin() {
         .update({
           first_name: playerForm.first_name.trim(),
           last_name: playerForm.last_name.trim(),
-          tour: playerForm.tour,
+          tour: playerForm.category,
           ranking: playerForm.ranking,
           price: playerForm.price
         })
@@ -464,7 +464,7 @@ export default function Admin() {
       alert('✅ Giocatore aggiornato!');
       setShowEditModal(false);
       setSelectedPlayer(null);
-      setPlayerForm({ first_name: '', last_name: '', tour: 'ATP', ranking: 1, price: 50 });
+      setPlayerForm({ first_name: '', last_name: '', category: 'ATP', ranking: 1, price: 50 });
       await loadPlayers();
     } catch (error) {
       alert('Errore modifica giocatore');
@@ -499,7 +499,7 @@ export default function Admin() {
     setPlayerForm({
       first_name: player.first_name,
       last_name: player.last_name,
-      tour: player.tour,
+      tour: player.category,
       ranking: player.ranking || 1,
       price: player.price || 50
     });
@@ -597,8 +597,8 @@ export default function Admin() {
         throw new Error(`La squadra deve avere almeno 20 giocatori. Trovati: ${roster?.length || 0}`);
       }
 
-      const atpPlayers = roster.filter((p: any) => p.player?.tour === 'ATP').map((p: any) => p.player_id);
-      const wtaPlayers = roster.filter((p: any) => p.player?.tour === 'WTA').map((p: any) => p.player_id);
+      const atpPlayers = roster.filter((p: any) => p.player?.category === 'ATP').map((p: any) => p.player_id);
+      const wtaPlayers = roster.filter((p: any) => p.player?.category === 'WTA').map((p: any) => p.player_id);
 
       if (atpPlayers.length < 10 || wtaPlayers.length < 10) {
         throw new Error(`Serve un roster bilanciato: 10 ATP e 10 WTA. Trovati: ${atpPlayers.length} ATP, ${wtaPlayers.length} WTA`);
@@ -791,7 +791,7 @@ export default function Admin() {
                       {players.map((player) => (
                         <tr key={player.id} className="hover:bg-gray-700/50">
                           <td className="px-4 py-3 text-white">{player.first_name} {player.last_name}</td>
-                          <td className="px-4 py-3 text-gray-300">{player.tour}</td>
+                          <td className="px-4 py-3 text-gray-300">{player.category}</td>
                           <td className="px-4 py-3 text-gray-300">{player.ranking || '-'}</td>
                           <td className="px-4 py-3 text-gray-300">{player.price} cr</td>
                           <td className="px-4 py-3 text-center space-x-2">
@@ -854,7 +854,7 @@ export default function Admin() {
                         {players.map((player) => (
                           <tr key={player.id} className="hover:bg-gray-700/50">
                             <td className="px-4 py-3 text-white">{player.first_name} {player.last_name}</td>
-                            <td className="px-4 py-3 text-gray-300">{player.tour}</td>
+                            <td className="px-4 py-3 text-gray-300">{player.category}</td>
                             <td className="px-4 py-3 text-center">
                               <input
                                 type="number"
@@ -1247,7 +1247,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Tour</label>
                 <select
-                  value={playerForm.tour}
+                  value={playerForm.category}
                   onChange={(e) => setPlayerForm({ ...playerForm, tour: e.target.value as 'ATP' | 'WTA' })}
                   className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
                 >
@@ -1324,7 +1324,7 @@ export default function Admin() {
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-1">Tour</label>
                 <select
-                  value={playerForm.tour}
+                  value={playerForm.category}
                   onChange={(e) => setPlayerForm({ ...playerForm, tour: e.target.value as 'ATP' | 'WTA' })}
                   className="w-full px-4 py-2 bg-gray-700 text-white rounded-lg"
                 >

@@ -18,7 +18,7 @@ export type Player = {
   id: string;
   first_name: string;
   last_name: string;
-  tour: 'ATP' | 'WTA';
+  category: 'ATP' | 'WTA';
   ranking: number;
   fixed_ranking: number;
   price: number;
@@ -41,13 +41,12 @@ export type Tournament = {
   id: string;
   tournament_name: string;
   type: string;
-  round_number: number;
   lineup_slots: number;
   is_active: boolean;
   duration_days: number;
   opponents_count: number;
   weight?: number;
-  start_date?: string;
+  start_date: string;
   end_date?: string;
   created_at: string;
 };

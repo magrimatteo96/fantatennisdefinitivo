@@ -22,8 +22,8 @@ export const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
 
-  const atpPlayers = mySquad.filter(s => s.player?.tour === 'ATP');
-  const wtaPlayers = mySquad.filter(s => s.player?.tour === 'WTA');
+  const atpPlayers = mySquad.filter(s => s.player?.category === 'ATP');
+  const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA');
 
   const isAdmin = user?.email === 'pivuz3@gmail.com' || user?.email === 'magrimatteo@gmail.com' || user?.email === 'admin@dev.local';
 
@@ -172,7 +172,7 @@ export const Dashboard: React.FC = () => {
           <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl p-6 border-2 border-slate-600 hover:border-[#ccff00] transition-all">
             <div className="flex items-center justify-between mb-4">
               <Calendar className="w-8 h-8 text-blue-400" />
-              <span className="text-sm font-bold text-white">Round {currentTournament?.round_number || '-'}</span>
+              <span className="text-sm font-bold text-white">Torneo Attivo</span>
             </div>
             <h3 className="text-slate-300 text-sm font-semibold">Current Tournament</h3>
             <p className="text-xs text-slate-400 mt-1">

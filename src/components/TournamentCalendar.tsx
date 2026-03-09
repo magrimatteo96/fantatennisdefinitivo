@@ -2,10 +2,11 @@ import { Calendar } from 'lucide-react';
 
 interface TournamentCalendarProps {
   tournaments: Array<{
-    round_number: number;
-    name: string;
+    id: string;
+    tournament_name: string;
     type: string;
     opponents_count: number;
+    start_date: string;
   }>;
 }
 
@@ -101,20 +102,21 @@ export default function TournamentCalendar({ tournaments }: TournamentCalendarPr
       </div>
 
       <div className="space-y-3 max-h-[600px] overflow-y-auto">
-        {tournaments.map((tournament) => {
-          const calendarInfo = CALENDAR_DATA.find(c => c.round === tournament.round_number);
+        {tournaments.map((tournament, index) => {
+          const roundNumber = index + 1;
+          const calendarInfo = CALENDAR_DATA.find(c => c.round === roundNumber);
           const colorClass = getTournamentColor(tournament.opponents_count);
           const matchupInfo = getMatchupInfo(tournament.opponents_count);
 
           return (
             <div
-              key={tournament.round_number}
+              key={tournament.id}
               className={`p-4 rounded-lg border-2 ${colorClass}`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="font-bold text-lg">Round {tournament.round_number}</span>
+                    <span className="font-bold text-lg">Round {roundNumber}</span>
                     <span className="font-bold text-lg">{tournament.tournament_name}</span>
                   </div>
                   <div className="text-sm opacity-80">

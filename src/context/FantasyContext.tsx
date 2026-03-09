@@ -336,13 +336,13 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         user_id: user.id,
         team_id: teamData.id,
         team_name: teamData.name,
-        total_points: leagueData.total_points,
-        matches_won: leagueData.matches_won,
-        matches_drawn: leagueData.matches_drawn,
-        matches_lost: leagueData.matches_lost,
+        total_points: leagueData.points || 0,
+        matches_won: leagueData.wins || 0,
+        matches_drawn: 0,
+        matches_lost: leagueData.losses || 0,
         budget_remaining: teamData.credits,
         created_at: leagueData.created_at || new Date().toISOString(),
-        updated_at: leagueData.updated_at || new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       } as any);
     } else {
       console.log('📊 Creating initial championship_standings record');
@@ -350,10 +350,13 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
         .from('championship_standings')
         .insert({
           team_id: teamData.id,
-          total_points: 0,
-          matches_won: 0,
-          matches_drawn: 0,
-          matches_lost: 0
+          points: 0,
+          wins: 0,
+          losses: 0,
+          played: 0,
+          total_points_scored: 0,
+          rank: 0,
+          season: '2026'
         })
         .select()
         .single();

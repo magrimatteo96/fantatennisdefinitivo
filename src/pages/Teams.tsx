@@ -110,8 +110,11 @@ export default function Teams() {
         }
 
         const players: TeamPlayer[] = playerData?.map(tp => {
-          if (!tp.players) return null;
-          return {
+          if (!tp.players) {
+            console.warn('Player data missing for team_player entry:', tp);
+            return null;
+          }
+          const mappedPlayer = {
             id: tp.players.id,
             first_name: tp.players.first_name || '',
             last_name: tp.players.last_name || '',
@@ -123,7 +126,10 @@ export default function Teams() {
             auction_price: tp.auction_price || 0,
             acquired_at: tp.acquired_at,
           };
+          return mappedPlayer;
         }).filter(p => p !== null) as TeamPlayer[] || [];
+
+        console.log(`Team ${team.name}: ${players.length} players loaded`);
 
         const atpPlayers = players.filter(p => p.category === 'ATP').sort((a, b) => a.ranking - b.ranking);
         const wtaPlayers = players.filter(p => p.category === 'WTA').sort((a, b) => a.ranking - b.ranking);

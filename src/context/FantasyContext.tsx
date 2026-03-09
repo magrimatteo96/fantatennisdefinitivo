@@ -392,15 +392,15 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       return false;
     }
 
-    const atpCount = mySquad.filter(s => s.player?.tour === 'ATP').length;
-    const wtaCount = mySquad.filter(s => s.player?.tour === 'WTA').length;
+    const atpCount = mySquad.filter(s => s.player?.category === 'ATP').length;
+    const wtaCount = mySquad.filter(s => s.player?.category === 'WTA').length;
 
-    if (player.tour === 'ATP' && atpCount >= 10) {
+    if (player.category === 'ATP' && atpCount >= 10) {
       alert('You already have 10 ATP players!');
       return false;
     }
 
-    if (player.tour === 'WTA' && wtaCount >= 10) {
+    if (player.category === 'WTA' && wtaCount >= 10) {
       alert('You already have 10 WTA players!');
       return false;
     }
@@ -734,8 +734,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     await loadStanding();
   };
 
-  const budgetRemaining = standing?.budget_remaining ||
-    (1000 - mySquad.reduce((sum, s) => sum + s.auction_price, 0));
+  const budgetRemaining = standing?.budget_remaining ?? 1000;
 
   const setImpersonatedTeam = (teamId: string | null) => {
     setImpersonatedTeamId(teamId);

@@ -612,7 +612,10 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     const errors = results.filter(r => r.error);
 
     if (errors.length > 0) {
-      console.error('❌ Errors inserting players:', errors);
+      console.error('❌ Errors inserting players - count:', errors.length);
+      errors.forEach((err, idx) => {
+        console.error(`Error ${idx + 1}:`, err.error?.message);
+      });
       alert('Some players could not be added');
     } else {
       console.log('✅ All 20 players added successfully!');
@@ -712,7 +715,10 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       const errors = results.filter(r => r.error);
 
       if (errors.length > 0) {
-        console.error(`❌ Error populating team ${team.name}:`, errors);
+        console.error(`❌ Error populating team ${team.name} - error count:`, errors.length);
+        errors.forEach((err, idx) => {
+          console.error(`  Error ${idx + 1}:`, err.error?.message);
+        });
         failCount++;
       } else {
         console.log(`✅ Team ${team.name} populated with 20 players`);

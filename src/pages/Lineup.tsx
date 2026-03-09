@@ -55,7 +55,7 @@ export const Lineup: React.FC = () => {
 
   const getTournamentType = (): TournamentType => {
     if (!currentTournament || !currentTournament.type) return '1000';
-    const type = currentTournament.type.toUpperCase();
+    const type = currentTournament.type?.toUpperCase() ?? '';
     if (type.includes('SLAM')) return 'SLAM';
     if (type.includes('1000') || type.includes('MASTER')) return '1000';
     if (type.includes('500')) return '500';
@@ -581,7 +581,7 @@ export const Lineup: React.FC = () => {
           </p>
 
           <button
-            onClick={generateMockRoster}
+            onClick={() => generateMockRoster()}
             className="w-full flex items-center justify-center space-x-2 px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-bold transition-all shadow-lg"
           >
             <Wand2 className="w-5 h-5" />
@@ -620,7 +620,7 @@ export const Lineup: React.FC = () => {
           </div>
           <div className="flex items-center space-x-3">
             <button
-              onClick={generateMockRoster}
+              onClick={() => generateMockRoster()}
               className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg font-semibold transition-all text-sm"
             >
               <Wand2 className="w-4 h-4" />

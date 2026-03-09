@@ -61,7 +61,7 @@ export default function Admin() {
     const { data } = await supabase
       .from('tournaments')
       .select('*')
-      .order('round_number', { ascending: true });
+      .order('start_date', { ascending: true });
 
     if (data) {
       setTournaments(data);
@@ -577,7 +577,7 @@ export default function Admin() {
       return;
     }
 
-    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${currentTournament.name}\nSlot: ${currentTournament.lineup_slots}`)) {
+    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${(currentTournament as any).tournament_name}\nSlot: ${(currentTournament as any).lineup_slots}`)) {
       return;
     }
 
@@ -829,7 +829,7 @@ export default function Admin() {
                     <option value="">-- Seleziona --</option>
                     {tournaments.map((t) => (
                       <option key={t.id} value={t.id}>
-                        Round {t.round_number}: {t.name}
+                        {t.tournament_name}
                       </option>
                     ))}
                   </select>
@@ -896,7 +896,7 @@ export default function Admin() {
                     <option value="">-- Seleziona --</option>
                     {tournaments.map((t) => (
                       <option key={t.id} value={t.id}>
-                        Round {t.round_number}: {t.name}
+                        {t.tournament_name}
                       </option>
                     ))}
                   </select>

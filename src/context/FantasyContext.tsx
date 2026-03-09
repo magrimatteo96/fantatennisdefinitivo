@@ -65,7 +65,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     if (currentTournament) {
-      console.log('✅ Torneo Attivo:', currentTournament.name);
+      console.log('✅ Torneo Attivo:', (currentTournament as any).tournament_name);
     }
   }, [currentTournament]);
 
@@ -123,8 +123,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     const { data } = await supabase
       .from('players')
       .select('*')
-      .order('tour')
-      .order('ranking');
+      .order('ranking', { ascending: true });
 
     setPlayers(data || []);
   };
@@ -261,7 +260,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (tournamentData) {
-        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.name);
+        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.tournament_name);
         setCurrentTournament(tournamentData as any);
 
         if (isDevelopmentMode) {

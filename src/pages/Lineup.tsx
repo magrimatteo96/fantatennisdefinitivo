@@ -58,13 +58,18 @@ export const Lineup: React.FC = () => {
   const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA').map(s => s.player!);
 
   const getTournamentType = (): TournamentType => {
-    if (!currentTournament || !currentTournament.type) return '1000';
-    const type = currentTournament.type?.toUpperCase() ?? '';
+    if (!currentTournament) return '1000';
+    const type = (currentTournament.type || currentTournament.category || '').toUpperCase();
     if (type.includes('SLAM')) return 'SLAM';
     if (type.includes('1000') || type.includes('MASTER')) return '1000';
     if (type.includes('500')) return '500';
     if (type.includes('250')) return '250';
     return '1000';
+  };
+
+  const getTournamentName = () => {
+    if (!currentTournament) return 'Unknown Tournament';
+    return currentTournament.tournament_name || currentTournament.name || 'Unknown Tournament';
   };
 
   const tournamentType = getTournamentType();
@@ -707,7 +712,7 @@ export const Lineup: React.FC = () => {
             {currentTournament ? (
               <>
                 <div className="text-[#ccff00] font-bold text-xl">
-                  🏆 Torneo Attivo: {currentTournament.name ?? 'Unknown'}
+                  🏆 Torneo Attivo: {getTournamentName()}
                 </div>
                 <div className="text-white font-semibold text-base">
                   Peso: {currentTournament.opponents_count ?? 0} | Slot Totali: {currentTournament.lineup_slots ?? 0} | Singolari: {singlesCount} ATP + {singlesCount} WTA

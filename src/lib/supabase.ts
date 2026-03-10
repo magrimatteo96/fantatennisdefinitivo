@@ -39,10 +39,11 @@ export type UserSquad = {
 
 export type Tournament = {
   id: string;
-  name: string;
-  tournament_name?: string;
+  name?: string;
+  tournament_name: string;
   round_number: number;
-  type: string;
+  category: string;
+  type?: string; // Alias for category for backwards compatibility
   lineup_slots: number;
   is_active: boolean;
   status?: string;

@@ -27,10 +27,23 @@ export const Dashboard: React.FC = () => {
 
   const isAdmin = user?.email === 'pivuz3@gmail.com' || user?.email === 'magrimatteo@gmail.com' || user?.email === 'admin@dev.local';
 
+  // Helper function to get tournament display name
+  const getTournamentName = () => {
+    if (!currentTournament) return 'Unknown Tournament';
+    return currentTournament.tournament_name || currentTournament.name || 'Unknown Tournament';
+  };
+
+  // Helper function to get tournament type
+  const getTournamentType = () => {
+    if (!currentTournament) return undefined;
+    return currentTournament.type || currentTournament.category;
+  };
+
   console.log('🔍 Dashboard Debug:');
   console.log('  - User Email:', user?.email);
   console.log('  - Is Admin:', isAdmin);
-  console.log('  - Current Tournament:', (currentTournament as any)?.name);
+  console.log('  - Current Tournament:', getTournamentName());
+  console.log('  - Round:', currentTournament?.round_number, 'Type:', getTournamentType());
   console.log('  - Standing:', standing?.team_name);
   console.log('  - Opponents Count:', myOpponents.length);
 
@@ -67,7 +80,7 @@ export const Dashboard: React.FC = () => {
     }
 
     setGenerating(true);
-    console.log('🚀 FORCE GENERATING MATCHES for tournament:', (currentTournament as any).name);
+    console.log('🚀 FORCE GENERATING MATCHES for tournament:', getTournamentName());
 
     const success = await generateMatchupsForAllTeams(currentTournament.id);
 
@@ -92,7 +105,7 @@ export const Dashboard: React.FC = () => {
         {/* Debug Info (Remove later) */}
         <div className="mb-4 bg-slate-800 border border-yellow-500 rounded-lg p-4">
           <p className="text-yellow-400 font-mono text-sm">
-            DEBUG: User={user?.email} | Admin={isAdmin ? 'YES' : 'NO'} | Tournament={(currentTournament as any)?.name || 'NONE'} | Standing={standing?.team_name || 'NONE'}
+            DEBUG: User={user?.email} | Admin={isAdmin ? 'YES' : 'NO'} | Tournament={getTournamentName()} | Round={currentTournament?.round_number || 'N/A'} | Type={getTournamentType() || 'N/A'} | Standing={standing?.team_name || 'NONE'}
           </p>
         </div>
 
@@ -105,12 +118,12 @@ export const Dashboard: React.FC = () => {
                   <Calendar className="w-6 h-6 text-[#ccff00]" />
                   <h2 className="text-2xl font-bold text-white">Tournament in Progress</h2>
                 </div>
-                <p className="text-3xl font-bold text-[#ccff00] mb-2">{(currentTournament as any).name}</p>
+                <p className="text-3xl font-bold text-[#ccff00] mb-2">{getTournamentName()}</p>
                 <div className="flex items-center space-x-4">
                   <span className="px-3 py-1 bg-[#ccff00] text-slate-900 text-sm font-bold rounded-full">
-                    {currentTournament.type === 'SLAM' ? 'Grand Slam' :
-                     currentTournament.type === '1000' ? 'Masters 1000' :
-                     currentTournament.type === '500' ? 'ATP 500' : 'ATP 250'}
+                    {getTournamentType() === 'SLAM' ? 'Grand Slam' :
+                     getTournamentType() === '1000' ? 'Masters 1000' :
+                     getTournamentType() === '500' ? 'ATP 500' : 'ATP 250'}
                   </span>
                   <span className="text-slate-400">
                     {new Date(currentTournament.start_date).toLocaleDateString()} - {new Date(currentTournament.end_date).toLocaleDateString()}
@@ -176,18 +189,18 @@ export const Dashboard: React.FC = () => {
             </div>
             <h3 className="text-slate-300 text-sm font-semibold">Current Tournament</h3>
             <p className="text-xs text-slate-400 mt-1">
-              {(currentTournament as any)?.name || 'No active tournament'}
+              {getTournamentName()}
             </p>
             {currentTournament && (
               <div className="mt-2">
                 <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                  currentTournament.type === 'SLAM' ? 'bg-purple-600 text-white' :
-                  currentTournament.type === '1000' ? 'bg-orange-600 text-white' :
+                  getTournamentType() === 'SLAM' ? 'bg-purple-600 text-white' :
+                  getTournamentType() === '1000' ? 'bg-orange-600 text-white' :
                   'bg-blue-600 text-white'
                 }`}>
-                  {currentTournament.type === 'SLAM' ? 'SLAM (⚡3)' :
-                   currentTournament.type === '1000' ? 'MASTER 1000 (⚡2)' :
-                   currentTournament.type === '500' ? '500 (⚡2)' :
+                  {getTournamentType() === 'SLAM' ? 'SLAM (⚡3)' :
+                   getTournamentType() === '1000' ? 'MASTER 1000 (⚡2)' :
+                   getTournamentType() === '500' ? '500 (⚡2)' :
                    '250 (⚡1)'}
                 </span>
               </div>
@@ -200,7 +213,7 @@ export const Dashboard: React.FC = () => {
             <Swords className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Nessun Match Generato</h2>
             <p className="text-slate-300 mb-4">
-              Non ci sono ancora match per il torneo <span className="text-[#ccff00] font-bold">{(currentTournament as any).name}</span>
+              Non ci sono ancora match per il torneo <span className="text-[#ccff00] font-bold">{getTournamentName()}</span>
             </p>
             <p className="text-slate-400 text-sm">
               {isAdmin ? "Clicca il tasto 'Generate Weekly Matches' sopra per creare i match" : "Attendi che l'admin generi i match per questo torneo"}
@@ -212,7 +225,7 @@ export const Dashboard: React.FC = () => {
           <div className="mb-6 bg-gradient-to-r from-orange-900 to-red-900 rounded-xl p-6 border-2 border-orange-500">
             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
               <Swords className="w-8 h-8 text-orange-400" />
-              Your H2H Matchups - {(currentTournament as any)?.name}
+              Your H2H Matchups - {getTournamentName()}
             </h2>
             <div className="bg-white/5 rounded-lg p-4 mb-4 backdrop-blur-sm">
               {myOpponents.length === 3 ? (

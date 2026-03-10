@@ -61,13 +61,15 @@ export default function Admin() {
   const loadTournaments = async () => {
     const { data } = await supabase
       .from('tournaments')
-      .select('*')
+      .select('id, name, tournament_name, round_number, category, lineup_slots, is_active, status, duration_days, opponents_count, weight, start_date, end_date, created_at')
       .order('start_date', { ascending: true });
 
     if (data) {
-      setTournaments(data);
-      if (data.length > 0 && !selectedTournament) {
-        setSelectedTournament(data[0].id);
+      // Map category to type for backwards compatibility
+      const tournamentsWithType = data.map(t => ({ ...t, type: t.category }));
+      setTournaments(tournamentsWithType);
+      if (tournamentsWithType.length > 0 && !selectedTournament) {
+        setSelectedTournament(tournamentsWithType[0].id);
       }
     }
   };
@@ -590,7 +592,7 @@ export default function Admin() {
       return;
     }
 
-    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${(currentTournament as any).tournament_name}\nSlot: ${(currentTournament as any).lineup_slots}`)) {
+    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${currentTournament.tournament_name || currentTournament.name}\nSlot: ${currentTournament.lineup_slots}`)) {
       return;
     }
 
@@ -797,9 +799,9 @@ export default function Admin() {
                     <div className="bg-gray-700 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-2">
                         <div>
-                          <h3 className="text-lg font-semibold text-white">{currentTournament.name}</h3>
+                          <h3 className="text-lg font-semibold text-white">{currentTournament.tournament_name || currentTournament.name || 'Unknown Tournament'}</h3>
                           <p className="text-sm text-gray-400">
-                            Turno {currentTournament.round_number} - {currentTournament.type}
+                            Turno {currentTournament.round_number} - {currentTournament.type || currentTournament.category}
                           </p>
                           <p className="text-sm text-gray-400">
                             Avversari: {currentTournament.opponents_count || 1}

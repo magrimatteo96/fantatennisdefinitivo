@@ -66,7 +66,8 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
 
   useEffect(() => {
     if (currentTournament) {
-      console.log('✅ Torneo Attivo:', (currentTournament as any).tournament_name);
+      const displayName = currentTournament.name || currentTournament.tournament_name;
+      console.log('✅ Torneo Attivo:', displayName);
     }
   }, [currentTournament]);
 
@@ -251,7 +252,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const { data: tournamentData, error } = await supabase
         .from('tournaments')
-        .select('*')
+        .select('id, name, tournament_name, round_number, category, lineup_slots, is_active, status, duration_days, opponents_count, weight, start_date, end_date, created_at')
         .eq('is_active', true)
         .maybeSingle();
 
@@ -261,12 +262,18 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (tournamentData) {
-        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.name || tournamentData.tournament_name);
-        console.log('   Round:', tournamentData.round_number, 'Type:', tournamentData.type);
-        setCurrentTournament(tournamentData as Tournament);
+        // Map category to type for backwards compatibility
+        const tournament = {
+          ...tournamentData,
+          type: tournamentData.category
+        } as Tournament;
+
+        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournament.name || tournament.tournament_name);
+        console.log('   Round:', tournament.round_number, 'Type:', tournament.category);
+        setCurrentTournament(tournament);
 
         if (isDevelopmentMode) {
-          await autoGenerateMatchups(tournamentData.id);
+          await autoGenerateMatchups(tournament.id);
         }
       } else {
         console.warn('⚠️ No active tournament found');

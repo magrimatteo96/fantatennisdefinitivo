@@ -3,7 +3,8 @@ import { supabase } from './supabase';
 interface Tournament {
   id: string;
   tournament_name: string;
-  type: string;
+  category: string;
+  type?: string;
   round_number: number;
   opponents_count: number;
 }

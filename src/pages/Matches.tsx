@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, getLineupSlots } from '../lib/supabase';
 import { Calendar, TrendingUp, Users } from 'lucide-react';
 
 interface Tournament {
   id: string;
   name: string;
+  tournament_name: string;
+  category: string;
   type: string;
   round_number: number;
-  lineup_slots: number;
   is_active: boolean;
 }
 
@@ -95,7 +96,7 @@ export default function Matches() {
         homeScore: matchup.home_score,
         awayScore: matchup.away_score,
         isCompleted: matchup.is_completed,
-        tournamentSlots: selectedTournament.lineup_slots
+        tournamentSlots: getLineupSlots(selectedTournament.category)
       }));
 
       setMatches(displayMatches);
@@ -137,7 +138,7 @@ export default function Matches() {
           <option value="">Choose a tournament...</option>
           {tournaments.map((t) => (
             <option key={t.id} value={t.id}>
-              T{t.round_number}: {t.name} ({t.type}) - {t.lineup_slots} slots
+              T{t.round_number}: {t.tournament_name || t.name} ({t.category}) - {getLineupSlots(t.category)} slots
             </option>
           ))}
         </select>
@@ -166,7 +167,7 @@ export default function Matches() {
             </div>
             <ul className="text-sm text-green-800 space-y-1">
               <li>• Each position duel (Slot 1 vs Slot 1, etc.): Win = 3pts, Draw = 1pt, Loss = 0pts</li>
-              <li>• Tournament uses {selectedTournament?.lineup_slots} lineup slots</li>
+              <li>• Tournament uses {selectedTournament ? getLineupSlots(selectedTournament.category) : 0} lineup slots</li>
               <li>• Highest total match score wins the round</li>
             </ul>
           </div>

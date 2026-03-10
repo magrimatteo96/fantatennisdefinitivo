@@ -252,7 +252,7 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
     try {
       const { data: tournamentData, error } = await supabase
         .from('tournaments')
-        .select('id, name, tournament_name, round_number, category, lineup_slots, is_active, status, duration_days, opponents_count, weight, start_date, end_date, created_at')
+        .select('id, name, tournament_name, round_number, category, is_active, status, opponents_count, weight, start_date, created_at')
         .eq('is_active', true)
         .maybeSingle();
 

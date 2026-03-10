@@ -126,7 +126,7 @@ export const Dashboard: React.FC = () => {
                      getTournamentType() === '500' ? 'ATP 500' : 'ATP 250'}
                   </span>
                   <span className="text-slate-400">
-                    {new Date(currentTournament.start_date).toLocaleDateString()} - {new Date(currentTournament.end_date).toLocaleDateString()}
+                    {new Date(currentTournament.start_date).toLocaleDateString()}
                   </span>
                 </div>
               </div>

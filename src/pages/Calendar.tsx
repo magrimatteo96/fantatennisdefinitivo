@@ -1,18 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useFantasy } from '../context/FantasyContext';
 import { Calendar as CalendarIcon, Trophy, MapPin } from 'lucide-react';
-import { supabase } from '../lib/supabase';
+import { supabase, getLineupSlots } from '../lib/supabase';
 
 interface Tournament {
   id: string;
   name: string;
+  tournament_name: string;
+  category: string;
   type: string;
   start_date: string;
-  end_date: string;
   round_number: number;
-  lineup_slots: number;
   is_active: boolean;
-  duration_days: number;
   opponents_count: number;
 }
 
@@ -127,9 +126,6 @@ export const Calendar: React.FC = () => {
                       <td className="p-4">
                         <div className="text-slate-300 text-sm">
                           <div>{new Date(tournament.start_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</div>
-                          <div className="text-slate-500">
-                            {new Date(tournament.end_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                          </div>
                         </div>
                       </td>
                       <td className="p-4">

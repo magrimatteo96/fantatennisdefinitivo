@@ -44,16 +44,25 @@ export type Tournament = {
   round_number: number;
   category: string;
   type?: string; // Alias for category for backwards compatibility
-  lineup_slots: number;
   is_active: boolean;
   status?: string;
-  duration_days: number;
   opponents_count: number;
   weight?: number;
   start_date: string;
-  end_date?: string;
   created_at: string;
 };
+
+// Helper function to calculate dynamic lineup slots based on category
+export function getLineupSlots(category: string): number {
+  // 250 or 500: 10 slots (4 ATP Singles, 4 WTA Singles, 2 Doubles)
+  // 1000 or SLAM: 12 slots (5 ATP Singles, 5 WTA Singles, 2 Doubles)
+  return category === '250' || category === '500' ? 10 : 12;
+}
+
+// Helper function to calculate singles count based on category
+export function getSinglesCount(category: string): number {
+  return getLineupSlots(category) === 10 ? 4 : 5;
+}
 
 export type Formation = {
   atpSingles: string[];

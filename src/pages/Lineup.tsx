@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useFantasy } from '../context/FantasyContext';
 import { Users, Save, AlertCircle, Crown, Wand2, Shield } from 'lucide-react';
-import { supabase, Player } from '../lib/supabase';
+import { supabase, Player, getLineupSlots, getSinglesCount } from '../lib/supabase';
 
 type TournamentType = 'SLAM' | '1000' | '500' | '250';
 
@@ -74,10 +74,11 @@ export const Lineup: React.FC = () => {
 
   const tournamentType = getTournamentType();
 
-  // Dynamic singles count based on tournament weight (lineup_slots)
-  // Weight 1 (250/500): 10 slots = 4 ATP + 4 WTA + 2 Doubles
-  // Weight 2/3 (Master/SLAM): 12 slots = 5 ATP + 5 WTA + 2 Doubles
-  const singlesCount = currentTournament?.lineup_slots === 10 ? 4 : 5;
+  // Dynamic singles count based on tournament category
+  // 250/500: 10 slots = 4 ATP + 4 WTA + 2 Doubles
+  // 1000/SLAM: 12 slots = 5 ATP + 5 WTA + 2 Doubles
+  const singlesCount = currentTournament ? getSinglesCount(currentTournament.category) : 4;
+  const totalSlots = currentTournament ? getLineupSlots(currentTournament.category) : 10;
 
   useEffect(() => {
     const handleTournamentChange = async () => {
@@ -715,7 +716,7 @@ export const Lineup: React.FC = () => {
                   🏆 Torneo Attivo: {getTournamentName()}
                 </div>
                 <div className="text-white font-semibold text-base">
-                  Peso: {currentTournament.opponents_count ?? 0} | Slot Totali: {currentTournament.lineup_slots ?? 0} | Singolari: {singlesCount} ATP + {singlesCount} WTA
+                  Peso: {currentTournament.opponents_count ?? 0} | Slot Totali: {totalSlots} | Singolari: {singlesCount} ATP + {singlesCount} WTA
                 </div>
                 <div className="text-slate-300 text-sm">
                   📋 Modulo: {getModuleDescription()}

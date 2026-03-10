@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase, getLineupSlots, getSinglesCount } from '../lib/supabase';
 import { Trophy, Calendar, Calculator, RefreshCw, Users, Award, Upload, CircleUser as UserCircle, CreditCard as Edit2, Trash2, Plus, X, Save, Shield, Target } from 'lucide-react';
 import { calculateAllMatchupsForTournament } from '../lib/matchupCalculations';
 import GlobalMatchdaysManager from '../components/GlobalMatchdaysManager';
@@ -61,7 +61,7 @@ export default function Admin() {
   const loadTournaments = async () => {
     const { data } = await supabase
       .from('tournaments')
-      .select('id, name, tournament_name, round_number, category, lineup_slots, is_active, status, duration_days, opponents_count, weight, start_date, end_date, created_at')
+      .select('id, name, tournament_name, round_number, category, is_active, status, opponents_count, weight, start_date, created_at')
       .order('start_date', { ascending: true });
 
     if (data) {
@@ -592,7 +592,9 @@ export default function Admin() {
       return;
     }
 
-    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${currentTournament.tournament_name || currentTournament.name}\nSlot: ${currentTournament.lineup_slots}`)) {
+    const lineupSlots = getLineupSlots(currentTournament.category);
+
+    if (!confirm(`Generare una formazione automatica per "${teamName}"?\n\nTorneo: ${currentTournament.tournament_name || currentTournament.name}\nSlot: ${lineupSlots}`)) {
       return;
     }
 
@@ -615,8 +617,8 @@ export default function Admin() {
         throw new Error(`Serve un roster bilanciato: 10 ATP e 10 WTA. Trovati: ${atpPlayers.length} ATP, ${wtaPlayers.length} WTA`);
       }
 
-      const singlesCount = Math.floor((currentTournament.lineup_slots - currentTournament.opponents_count) / 2);
-      const doublesCount = currentTournament.opponents_count;
+      const singlesCount = getSinglesCount(currentTournament.category);
+      const doublesCount = 2; // Always 2 doubles pairs
 
       const selectedAtpSingles = atpPlayers.sort(() => Math.random() - 0.5).slice(0, singlesCount);
       const selectedWtaSingles = wtaPlayers.sort(() => Math.random() - 0.5).slice(0, singlesCount);

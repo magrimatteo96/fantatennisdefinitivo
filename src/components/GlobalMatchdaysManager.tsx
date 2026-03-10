@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Calendar, Play, RefreshCw } from 'lucide-react';
+import { useFantasy } from '../context/FantasyContext';
 
 interface Tournament {
   id: string;
@@ -12,6 +13,7 @@ interface Tournament {
 }
 
 export default function GlobalMatchdaysManager() {
+  const { refreshTournament } = useFantasy();
   const [matchdays, setMatchdays] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(false);
   const [initializing, setInitializing] = useState(false);
@@ -118,19 +120,40 @@ export default function GlobalMatchdaysManager() {
   const setActive = async (tournamentId: string) => {
     setLoading(true);
 
-    // Use the database function to ensure single active matchday
-    const { error } = await supabase.rpc('set_active_matchday', {
-      p_tournament_id: tournamentId
-    });
+    try {
+      // Step 1: Set all tournaments to inactive
+      const { error: deactivateError } = await supabase
+        .from('tournaments')
+        .update({ is_active: false })
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Update all rows
 
-    if (error) {
+      if (deactivateError) {
+        throw deactivateError;
+      }
+
+      // Step 2: Set selected tournament to active
+      const { error: activateError } = await supabase
+        .from('tournaments')
+        .update({ is_active: true })
+        .eq('id', tournamentId);
+
+      if (activateError) {
+        throw activateError;
+      }
+
+      // Step 3: Refresh local state
+      await loadMatchdays();
+
+      // Step 4: Refresh global context so Dashboard updates immediately
+      await refreshTournament();
+
+      alert('✅ Giornata attivata! Ora puoi salvare le Lineup.');
+    } catch (error: any) {
+      console.error('Error setting active tournament:', error);
       alert('Errore attivazione giornata: ' + error.message);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    alert('✅ Giornata attivata! Ora puoi salvare le Lineup.');
-    await loadMatchdays();
   };
 
   const getTypeLabel = (type: string | null | undefined) => {

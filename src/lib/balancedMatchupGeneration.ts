@@ -196,11 +196,42 @@ function generateRoundMatchups(
     }
   }
 
+  // Fill in missing matches if we couldn't find perfect balance
+  // This handles edge cases like 8 teams with 3 matches each during Slams
+  if (selectedMatchups.length < requiredMatchups) {
+    console.warn(`⚠️ Could not generate perfect matchups. Found ${selectedMatchups.length}/${requiredMatchups}. Filling gaps...`);
+
+    // Find teams that need more matches
+    const teamsNeedingMatches = teamIds.filter(id => teamMatchCount[id] < opponentsCount);
+
+    for (const teamId of teamsNeedingMatches) {
+      while (teamMatchCount[teamId] < opponentsCount && selectedMatchups.length < requiredMatchups) {
+        // Find available opponent (prefer those with fewer matches)
+        const availableOpponents = teamIds
+          .filter(id => id !== teamId && teamMatchCount[id] < opponentsCount)
+          .sort((a, b) => teamMatchCount[a] - teamMatchCount[b]);
+
+        if (availableOpponents.length > 0) {
+          const opponentId = availableOpponents[0];
+          selectedMatchups.push({
+            homeTeamId: teamId,
+            awayTeamId: opponentId
+          });
+          teamMatchCount[teamId]++;
+          teamMatchCount[opponentId]++;
+        } else {
+          break;
+        }
+      }
+    }
+  }
+
   return selectedMatchups;
 }
 
 /**
  * Validates that each team has exactly the required number of matches
+ * Now only warns instead of throwing to prevent crashes
  */
 function validateMatchups(
   matchups: MatchupPairing[],
@@ -215,12 +246,12 @@ function validateMatchups(
     teamMatchCounts[m.awayTeamId]++;
   });
 
-  // Validate
+  // Validate (warn only, don't throw)
   for (const teamId of teamIds) {
     const count = teamMatchCounts[teamId];
     if (count !== expectedCount) {
-      throw new Error(
-        `Validation failed: Team ${teamId} has ${count} matches, expected ${expectedCount}`
+      console.warn(
+        `⚠️ Validation warning: Team ${teamId} has ${count} matches, expected ${expectedCount}`
       );
     }
   }

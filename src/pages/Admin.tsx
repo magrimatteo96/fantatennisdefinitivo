@@ -24,7 +24,7 @@ interface Team {
 }
 
 type MainSection = 'superadmin' | 'league' | 'devtools';
-type SuperAdminTab = 'matchdays' | 'playerslist' | 'playerpoints' | 'bulkupload';
+type SuperAdminTab = 'matchdays' | 'roundmanagement' | 'playerslist' | 'playerpoints' | 'bulkupload';
 type LeagueTab = 'setup' | 'matchups';
 
 export default function Admin() {
@@ -733,6 +733,17 @@ export default function Admin() {
                 Global Matchdays (30)
               </button>
               <button
+                onClick={() => setSuperAdminTab('roundmanagement')}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                  superAdminTab === 'roundmanagement'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                }`}
+              >
+                <Target className="w-4 h-4" />
+                Gestione Turni
+              </button>
+              <button
                 onClick={() => setSuperAdminTab('playerslist')}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
                   superAdminTab === 'playerslist'
@@ -768,6 +779,101 @@ export default function Admin() {
             </div>
 
             {superAdminTab === 'matchdays' && <GlobalMatchdaysManager />}
+
+            {superAdminTab === 'roundmanagement' && (
+              <div className="bg-gray-800 rounded-lg shadow-lg p-6">
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                    <Target className="w-5 h-5" />
+                    Gestione Turni
+                  </h2>
+                  <p className="text-gray-400 text-sm mb-4">
+                    Chiudi il turno corrente per bloccare le formazioni e calcolare i risultati di tutti i match simultanei
+                  </p>
+                </div>
+
+                {currentTournament ? (
+                  <div className="space-y-4">
+                    <div className="bg-gray-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div>
+                          <h3 className="text-lg font-semibold text-white">{currentTournament.name}</h3>
+                          <p className="text-sm text-gray-400">
+                            Turno {currentTournament.round_number} - {currentTournament.type}
+                          </p>
+                          <p className="text-sm text-gray-400">
+                            Avversari: {currentTournament.opponents_count || 1}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            currentTournament.status === 'completed'
+                              ? 'bg-green-600 text-white'
+                              : currentTournament.status === 'active'
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-600 text-gray-300'
+                          }`}>
+                            {currentTournament.status === 'completed' ? 'Completato' :
+                             currentTournament.status === 'active' ? 'Attivo' : 'In arrivo'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {currentTournament.start_date && (
+                        <p className="text-sm text-gray-400">
+                          Data inizio: {new Date(currentTournament.start_date).toLocaleDateString('it-IT')}
+                        </p>
+                      )}
+                    </div>
+
+                    {currentTournament.status !== 'completed' && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm('Sei sicuro di voler chiudere questo turno e calcolare i punti?')) return;
+
+                          setLoading(true);
+                          try {
+                            const { error: statusError } = await supabase
+                              .from('tournaments')
+                              .update({ status: 'completed' })
+                              .eq('id', currentTournament.id);
+
+                            if (statusError) throw statusError;
+
+                            await calculateAllMatchupsForTournament(currentTournament.id);
+
+                            alert('Turno chiuso e punti calcolati con successo!');
+                            window.location.reload();
+                          } catch (err: any) {
+                            console.error('Error closing round:', err);
+                            alert('Errore nella chiusura del turno: ' + err.message);
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                        disabled={loading}
+                        className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed font-semibold flex items-center justify-center gap-2"
+                      >
+                        <Calculator className="w-5 h-5" />
+                        {loading ? 'Chiusura in corso...' : 'Chiudi Turno e Calcola Punti'}
+                      </button>
+                    )}
+
+                    {currentTournament.status === 'completed' && (
+                      <div className="bg-green-900/20 border border-green-600 rounded-lg p-4 text-center">
+                        <p className="text-green-400 font-medium">
+                          Questo turno è stato completato. I punti sono stati calcolati.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-400 py-8">
+                    Nessun torneo attivo. Attiva un turno dalla sezione Global Matchdays.
+                  </div>
+                )}
+              </div>
+            )}
 
             {superAdminTab === 'playerslist' && (
               <div className="bg-gray-800 rounded-lg shadow-lg p-6">

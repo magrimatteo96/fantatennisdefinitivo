@@ -511,6 +511,17 @@ export const Lineup: React.FC = () => {
       return;
     }
 
+    // Check if tournament has started (deadline lock)
+    if (currentTournament.start_date) {
+      const tournamentStartDate = new Date(currentTournament.start_date);
+      const now = new Date();
+
+      if (now >= tournamentStartDate) {
+        alert('⏰ Turno iniziato: formazioni bloccate');
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {

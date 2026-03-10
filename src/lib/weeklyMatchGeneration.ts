@@ -84,7 +84,7 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
 
     const { data: tournament, error: tournamentError } = await supabase
       .from('tournaments')
-      .select('weight, tournament_name')
+      .select('opponents_count, name')
       .eq('id', tournamentId)
       .single();
 
@@ -93,7 +93,8 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
       return false;
     }
 
-    console.log('✅ Tournament loaded:', tournament.tournament_name, 'Weight:', tournament.weight);
+    const opponentsCount = tournament.opponents_count || 1;
+    console.log('✅ Tournament loaded:', tournament.name, 'Opponents:', opponentsCount);
 
     const { data: allTeams, error: teamsError } = await supabase
       .from('league_teams')
@@ -104,7 +105,7 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
       return false;
     }
 
-    console.log('✅ Loaded', allTeams.length, 'teams:', allTeams.map(t => t.name).join(', '));
+    console.log('✅ Loaded', allTeams.length, 'teams');
 
     console.log('🧹 Deleting existing matchups for tournament...');
     const { error: deleteError } = await supabase
@@ -119,30 +120,34 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
     }
 
     const matchupsToCreate: any[] = [];
+    const usedPairs = new Set<string>();
 
     for (const team of allTeams) {
+      const matchdayId = crypto.randomUUID();
+
       const otherTeams = allTeams.filter(t => t.id !== team.id);
       const shuffledOpponents = [...otherTeams].sort(() => Math.random() - 0.5);
-      const selectedOpponents = shuffledOpponents.slice(0, tournament.weight);
+      const selectedOpponents = shuffledOpponents.slice(0, opponentsCount);
+
+      console.log(`  🎯 Team ${team.name}: ${selectedOpponents.length} opponents`);
 
       for (const opponent of selectedOpponents) {
-        const existingMatchup = matchupsToCreate.find(
-          m =>
-            (m.team_a_id === team.id && m.team_b_id === opponent.id) ||
-            (m.team_a_id === opponent.id && m.team_b_id === team.id)
-        );
+        const pairKey1 = `${team.id}_${opponent.id}`;
+        const pairKey2 = `${opponent.id}_${team.id}`;
 
-        if (!existingMatchup) {
+        if (!usedPairs.has(pairKey1) && !usedPairs.has(pairKey2)) {
           matchupsToCreate.push({
             tournament_id: tournamentId,
-            team_a_id: team.id,
-            team_b_id: opponent.id,
+            matchday_id: matchdayId,
+            home_team_id: team.id,
+            away_team_id: opponent.id,
             is_completed: false,
-            team_a_score: 0,
-            team_b_score: 0,
-            team_a_championship_points: 0,
-            team_b_championship_points: 0
+            home_score: 0,
+            away_score: 0
           });
+
+          usedPairs.add(pairKey1);
+          usedPairs.add(pairKey2);
         }
       }
     }
@@ -159,14 +164,12 @@ export async function generateMatchupsForAllTeams(tournamentId: string): Promise
         return false;
       }
 
-      console.log(`✅ SUCCESS! Created ${matchupsToCreate.length} matchups for tournament ${tournament.tournament_name}`);
+      console.log(`✅ SUCCESS! Created ${matchupsToCreate.length} matchups`);
       return true;
     } else {
-      console.log('⚠️ No matchups to create (array is empty)');
+      console.log('⚠️ No matchups to create');
       return true;
     }
-
-    return true;
   } catch (error) {
     console.error('Error in generateMatchupsForAllTeams:', error);
     return false;

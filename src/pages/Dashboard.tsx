@@ -215,9 +215,19 @@ export const Dashboard: React.FC = () => {
               Your H2H Matchups - {(currentTournament as any)?.tournament_name}
             </h2>
             <div className="bg-white/5 rounded-lg p-4 mb-4 backdrop-blur-sm">
-              <p className="text-white text-center">
-                You are facing <span className="text-[#ccff00] font-bold text-xl">{myOpponents.length}</span> opponent{myOpponents.length > 1 ? 's' : ''} this round
-              </p>
+              {myOpponents.length === 3 ? (
+                <p className="text-white text-center text-lg">
+                  In questo <span className="text-purple-400 font-bold">SLAM</span> sfidi: <span className="text-[#ccff00] font-bold">{myOpponents.map(o => o.opponent_name).join(', ')}</span>
+                </p>
+              ) : myOpponents.length === 2 ? (
+                <p className="text-white text-center text-lg">
+                  In questo torneo sfidi: <span className="text-[#ccff00] font-bold">{myOpponents.map(o => o.opponent_name).join(' e ')}</span>
+                </p>
+              ) : (
+                <p className="text-white text-center">
+                  Sfidi <span className="text-[#ccff00] font-bold text-xl">{myOpponents[0].opponent_name}</span>
+                </p>
+              )}
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {myOpponents.map((opponent, idx) => (

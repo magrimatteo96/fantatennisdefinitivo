@@ -588,10 +588,11 @@ export const Lineup: React.FC = () => {
         return;
       }
 
+      // Only save the correct number of slots based on tournament category
       const lineupData = {
-        singles_atp: (formation.atpSingles || []).map(p => p?.id || null),
-        singles_wta: (formation.wtaSingles || []).map(p => p?.id || null),
-        doubles: (formation.doubles || []).map(d => ({
+        singles_atp: (formation.atpSingles || []).slice(0, singlesCount).map(p => p?.id || null),
+        singles_wta: (formation.wtaSingles || []).slice(0, singlesCount).map(p => p?.id || null),
+        doubles: (formation.doubles || []).slice(0, 2).map(d => ({
           atp: d?.atp?.id || null,
           wta: d?.wta?.id || null,
         })),

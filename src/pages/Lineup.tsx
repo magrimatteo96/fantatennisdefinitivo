@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useFantasy } from '../context/FantasyContext';
-import { Users, Save, AlertCircle, Crown, Wand2 } from 'lucide-react';
+import { Users, Save, AlertCircle, Crown, Wand2, Shield } from 'lucide-react';
 import { supabase, Player } from '../lib/supabase';
 
 type TournamentType = 'SLAM' | '1000' | '500' | '250';
@@ -47,8 +47,12 @@ export const Lineup: React.FC = () => {
   const [formation, setFormation] = useState<FormationState>(getDefaultFormation());
   const [errors, setErrors] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isDeadlinePassed, setIsDeadlinePassed] = useState(false);
+  const [isAdminBypass, setIsAdminBypass] = useState(false);
 
   console.log('Lineup rendered, formation is:', formation);
+
+  const isAdmin = user?.email === 'admin@dev.local' || user?.email === 'pivuz3@gmail.com' || user?.email === 'magrimatteo@gmail.com';
 
   const atpPlayers = mySquad.filter(s => s.player?.category === 'ATP').map(s => s.player!);
   const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA').map(s => s.player!);
@@ -131,6 +135,49 @@ export const Lineup: React.FC = () => {
   useEffect(() => {
     loadSavedLineup();
   }, [currentTournament, mySquad, user]);
+
+  useEffect(() => {
+    checkDeadline();
+  }, [currentTournament, isAdmin]);
+
+  const checkDeadline = async () => {
+    if (!currentTournament || !currentTournament.start_date) {
+      setIsDeadlinePassed(false);
+      setIsAdminBypass(false);
+      return;
+    }
+
+    try {
+      const { data: serverTimeData, error } = await supabase.rpc('get_server_time');
+
+      if (error) {
+        console.error('Error getting server time:', error);
+        return;
+      }
+
+      const serverTime = new Date(serverTimeData);
+      const tournamentStartDate = new Date(currentTournament.start_date);
+
+      const deadlinePassed = serverTime >= tournamentStartDate;
+      setIsDeadlinePassed(deadlinePassed);
+
+      if (deadlinePassed && isAdmin) {
+        setIsAdminBypass(true);
+      } else {
+        setIsAdminBypass(false);
+      }
+
+      console.log('⏰ Deadline Check:', {
+        serverTime: serverTime.toISOString(),
+        tournamentStart: tournamentStartDate.toISOString(),
+        deadlinePassed,
+        isAdmin,
+        bypassActive: deadlinePassed && isAdmin
+      });
+    } catch (err) {
+      console.error('Error in deadline check:', err);
+    }
+  };
 
   const loadSavedLineup = async () => {
     if (!currentTournament || !user) return;
@@ -511,15 +558,14 @@ export const Lineup: React.FC = () => {
       return;
     }
 
-    // Check if tournament has started (deadline lock)
-    if (currentTournament.start_date) {
-      const tournamentStartDate = new Date(currentTournament.start_date);
-      const now = new Date();
+    // Check if tournament has started (deadline lock with admin bypass)
+    if (isDeadlinePassed && !isAdminBypass) {
+      alert('⏰ Turno iniziato: formazioni bloccate');
+      return;
+    }
 
-      if (now >= tournamentStartDate) {
-        alert('⏰ Turno iniziato: formazioni bloccate');
-        return;
-      }
+    if (isAdminBypass) {
+      console.log('🔓 Admin bypass active - allowing save despite deadline');
     }
 
     setLoading(true);
@@ -625,7 +671,7 @@ export const Lineup: React.FC = () => {
             </h1>
             {currentTournament && (
               <div className="text-slate-400 text-sm">
-                {currentTournament.tournament_name ?? 'Unknown Tournament'}
+                {currentTournament.name ?? 'Unknown Tournament'}
               </div>
             )}
           </div>
@@ -637,14 +683,22 @@ export const Lineup: React.FC = () => {
               <Wand2 className="w-4 h-4" />
               <span>Rigenera Test Squad</span>
             </button>
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex items-center space-x-2 px-6 py-3 bg-[#ccff00] hover:bg-[#b8e600] text-slate-900 rounded-lg font-bold transition-all disabled:opacity-50"
-            >
-              <Save className="w-5 h-5" />
-              <span>{loading ? 'Salvando...' : 'Salva Formazione'}</span>
-            </button>
+            <div className="flex flex-col items-end gap-2">
+              {isAdminBypass && (
+                <span className="px-3 py-1 bg-orange-600 text-white text-xs font-bold rounded-full flex items-center gap-1">
+                  <Shield className="w-3 h-3" />
+                  Admin Mode: Deadline Bypassed
+                </span>
+              )}
+              <button
+                onClick={handleSave}
+                disabled={loading || (isDeadlinePassed && !isAdminBypass)}
+                className="flex items-center space-x-2 px-6 py-3 bg-[#ccff00] hover:bg-[#b8e600] text-slate-900 rounded-lg font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Save className="w-5 h-5" />
+                <span>{loading ? 'Salvando...' : 'Salva Formazione'}</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -653,7 +707,7 @@ export const Lineup: React.FC = () => {
             {currentTournament ? (
               <>
                 <div className="text-[#ccff00] font-bold text-xl">
-                  🏆 Torneo Attivo: {currentTournament.tournament_name ?? 'Unknown'}
+                  🏆 Torneo Attivo: {currentTournament.name ?? 'Unknown'}
                 </div>
                 <div className="text-white font-semibold text-base">
                   Peso: {currentTournament.opponents_count ?? 0} | Slot Totali: {currentTournament.lineup_slots ?? 0} | Singolari: {singlesCount} ATP + {singlesCount} WTA

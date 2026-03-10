@@ -261,8 +261,9 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
       }
 
       if (tournamentData) {
-        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.tournament_name);
-        setCurrentTournament(tournamentData as any);
+        console.log('✅ FOUND ACTIVE TOURNAMENT:', tournamentData.name || tournamentData.tournament_name);
+        console.log('   Round:', tournamentData.round_number, 'Type:', tournamentData.type);
+        setCurrentTournament(tournamentData as Tournament);
 
         if (isDevelopmentMode) {
           await autoGenerateMatchups(tournamentData.id);

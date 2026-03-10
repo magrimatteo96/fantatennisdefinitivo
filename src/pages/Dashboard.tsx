@@ -30,7 +30,7 @@ export const Dashboard: React.FC = () => {
   console.log('🔍 Dashboard Debug:');
   console.log('  - User Email:', user?.email);
   console.log('  - Is Admin:', isAdmin);
-  console.log('  - Current Tournament:', (currentTournament as any)?.tournament_name);
+  console.log('  - Current Tournament:', (currentTournament as any)?.name);
   console.log('  - Standing:', standing?.team_name);
   console.log('  - Opponents Count:', myOpponents.length);
 
@@ -67,7 +67,7 @@ export const Dashboard: React.FC = () => {
     }
 
     setGenerating(true);
-    console.log('🚀 FORCE GENERATING MATCHES for tournament:', (currentTournament as any).tournament_name);
+    console.log('🚀 FORCE GENERATING MATCHES for tournament:', (currentTournament as any).name);
 
     const success = await generateMatchupsForAllTeams(currentTournament.id);
 
@@ -92,7 +92,7 @@ export const Dashboard: React.FC = () => {
         {/* Debug Info (Remove later) */}
         <div className="mb-4 bg-slate-800 border border-yellow-500 rounded-lg p-4">
           <p className="text-yellow-400 font-mono text-sm">
-            DEBUG: User={user?.email} | Admin={isAdmin ? 'YES' : 'NO'} | Tournament={(currentTournament as any)?.tournament_name || 'NONE'} | Standing={standing?.team_name || 'NONE'}
+            DEBUG: User={user?.email} | Admin={isAdmin ? 'YES' : 'NO'} | Tournament={(currentTournament as any)?.name || 'NONE'} | Standing={standing?.team_name || 'NONE'}
           </p>
         </div>
 
@@ -105,7 +105,7 @@ export const Dashboard: React.FC = () => {
                   <Calendar className="w-6 h-6 text-[#ccff00]" />
                   <h2 className="text-2xl font-bold text-white">Tournament in Progress</h2>
                 </div>
-                <p className="text-3xl font-bold text-[#ccff00] mb-2">{(currentTournament as any).tournament_name}</p>
+                <p className="text-3xl font-bold text-[#ccff00] mb-2">{(currentTournament as any).name}</p>
                 <div className="flex items-center space-x-4">
                   <span className="px-3 py-1 bg-[#ccff00] text-slate-900 text-sm font-bold rounded-full">
                     {currentTournament.type === 'SLAM' ? 'Grand Slam' :
@@ -176,7 +176,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <h3 className="text-slate-300 text-sm font-semibold">Current Tournament</h3>
             <p className="text-xs text-slate-400 mt-1">
-              {(currentTournament as any)?.tournament_name || 'No active tournament'}
+              {(currentTournament as any)?.name || 'No active tournament'}
             </p>
             {currentTournament && (
               <div className="mt-2">
@@ -200,7 +200,7 @@ export const Dashboard: React.FC = () => {
             <Swords className="w-16 h-16 text-yellow-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-white mb-2">Nessun Match Generato</h2>
             <p className="text-slate-300 mb-4">
-              Non ci sono ancora match per il torneo <span className="text-[#ccff00] font-bold">{(currentTournament as any).tournament_name}</span>
+              Non ci sono ancora match per il torneo <span className="text-[#ccff00] font-bold">{(currentTournament as any).name}</span>
             </p>
             <p className="text-slate-400 text-sm">
               {isAdmin ? "Clicca il tasto 'Generate Weekly Matches' sopra per creare i match" : "Attendi che l'admin generi i match per questo torneo"}
@@ -212,7 +212,7 @@ export const Dashboard: React.FC = () => {
           <div className="mb-6 bg-gradient-to-r from-orange-900 to-red-900 rounded-xl p-6 border-2 border-orange-500">
             <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-3">
               <Swords className="w-8 h-8 text-orange-400" />
-              Your H2H Matchups - {(currentTournament as any)?.tournament_name}
+              Your H2H Matchups - {(currentTournament as any)?.name}
             </h2>
             <div className="bg-white/5 rounded-lg p-4 mb-4 backdrop-blur-sm">
               {myOpponents.length === 3 ? (

@@ -39,10 +39,13 @@ export type UserSquad = {
 
 export type Tournament = {
   id: string;
-  tournament_name: string;
+  name: string;
+  tournament_name?: string;
+  round_number: number;
   type: string;
   lineup_slots: number;
   is_active: boolean;
+  status?: string;
   duration_days: number;
   opponents_count: number;
   weight?: number;

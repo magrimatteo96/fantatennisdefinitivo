@@ -60,22 +60,7 @@ export default function MatchupResults() {
     setLoading(true);
     const { data } = await supabase
       .from('matchups')
-      .select(`
-        id,
-        home_score,
-        away_score,
-        home_championship_points,
-        away_championship_points,
-        atp_bonus_winner,
-        wta_bonus_winner,
-        home_atp_total,
-        away_atp_total,
-        home_wta_total,
-        away_wta_total,
-        is_completed,
-        home_team:teams!home_team_id(name),
-        away_team:teams!away_team_id(name)
-      `)
+      .select(`*, home_team:teams!matchups_home_team_id_fkey(name), away_team:teams!matchups_away_team_id_fkey(name)`)
       .eq('tournament_id', selectedTournament);
 
     if (data) {

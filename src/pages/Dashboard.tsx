@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useFantasy } from '../context/FantasyContext';
-import { Calendar, DollarSign, Users, Trophy, TrendingUp, Swords, RefreshCw } from 'lucide-react';
+import { Calendar, DollarSign, Users, Trophy, TrendingUp, Swords } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { getTeamOpponentsInTournament } from '../lib/matchupCalculations';
-import { generateMatchupsForAllTeams } from '../lib/weeklyMatchGeneration';
 
 interface Opponent {
   opponent_id: string;
@@ -20,7 +19,6 @@ export const Dashboard: React.FC = () => {
   const { mySquad, currentTournament, standing, budgetRemaining, user } = useFantasy();
   const [myOpponents, setMyOpponents] = useState<Opponent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
 
   const atpPlayers = mySquad.filter(s => s.player?.category === 'ATP');
   const wtaPlayers = mySquad.filter(s => s.player?.category === 'WTA');
@@ -73,27 +71,6 @@ export const Dashboard: React.FC = () => {
     setLoading(false);
   };
 
-  const handleGenerateMatches = async () => {
-    if (!currentTournament) {
-      alert('No active tournament');
-      return;
-    }
-
-    setGenerating(true);
-    console.log('🚀 FORCE GENERATING MATCHES for tournament:', getTournamentName());
-
-    const success = await generateMatchupsForAllTeams(currentTournament.id);
-
-    if (success) {
-      alert('✅ Weekly matches generated successfully!');
-      await loadOpponents();
-    } else {
-      alert('❌ Failed to generate matches. Check console for details.');
-    }
-
-    setGenerating(false);
-  };
-
   return (
     <div className="min-h-screen bg-slate-900 p-6">
       <div className="max-w-7xl mx-auto">
@@ -130,21 +107,11 @@ export const Dashboard: React.FC = () => {
                   </span>
                 </div>
               </div>
-              <div className="text-right flex flex-col items-end space-y-3">
-                <div>
-                  <p className="text-slate-400 text-sm mb-1">Matchups Remaining</p>
-                  <p className="text-4xl font-bold text-[#ccff00]">
-                    {myOpponents.filter(o => !o.is_completed).length}
-                  </p>
-                </div>
-                <button
-                  onClick={handleGenerateMatches}
-                  disabled={generating}
-                  className="flex items-center space-x-2 px-4 py-2 bg-[#ccff00] text-slate-900 font-bold rounded-lg hover:bg-[#b8e600] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-                >
-                  <RefreshCw className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
-                  <span>{generating ? 'Generating...' : 'Generate Weekly Matches'}</span>
-                </button>
+              <div className="text-right">
+                <p className="text-slate-400 text-sm mb-1">Matchups Remaining</p>
+                <p className="text-4xl font-bold text-[#ccff00]">
+                  {myOpponents.filter(o => !o.is_completed).length}
+                </p>
               </div>
             </div>
           </div>
@@ -216,7 +183,7 @@ export const Dashboard: React.FC = () => {
               Non ci sono ancora match per il torneo <span className="text-[#ccff00] font-bold">{getTournamentName()}</span>
             </p>
             <p className="text-slate-400 text-sm">
-              {isAdmin ? "Clicca il tasto 'Generate Weekly Matches' sopra per creare i match" : "Attendi che l'admin generi i match per questo torneo"}
+              Attendi che l'admin generi i match per questo torneo dalla pagina Admin
             </p>
           </div>
         )}

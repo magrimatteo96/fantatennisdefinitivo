@@ -99,6 +99,16 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
 
     // Save to database - always try to save whatever we generated
     if (matchups.length > 0) {
+      // Delete existing matchups for this tournament first to prevent 409 conflicts
+      const { error: deleteError } = await supabase
+        .from('matchups')
+        .delete()
+        .eq('tournament_id', tournament.id);
+
+      if (deleteError) {
+        console.error(`Error deleting existing matchups for ${tournament.tournament_name}:`, deleteError);
+      }
+
       const matchupRecords = matchups.map(m => ({
         tournament_id: tournament.id,
         home_team_id: m.homeTeamId,
@@ -108,15 +118,12 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
         is_completed: false
       }));
 
-      const { error: upsertError } = await supabase
+      const { error: insertError } = await supabase
         .from('matchups')
-        .upsert(matchupRecords, {
-          onConflict: 'tournament_id,home_team_id,away_team_id',
-          ignoreDuplicates: false
-        });
+        .insert(matchupRecords);
 
-      if (upsertError) {
-        console.error(`Error upserting matchups for ${tournament.tournament_name}:`, upsertError);
+      if (insertError) {
+        console.error(`Error inserting matchups for ${tournament.tournament_name}:`, insertError);
         // Don't throw - log error and continue with next tournament
       }
     }

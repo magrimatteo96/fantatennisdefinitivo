@@ -108,12 +108,15 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
         is_completed: false
       }));
 
-      const { error: insertError } = await supabase
+      const { error: upsertError } = await supabase
         .from('matchups')
-        .insert(matchupRecords);
+        .upsert(matchupRecords, {
+          onConflict: 'tournament_id,home_team_id,away_team_id',
+          ignoreDuplicates: false
+        });
 
-      if (insertError) {
-        console.error(`Error inserting matchups for ${tournament.tournament_name}:`, insertError);
+      if (upsertError) {
+        console.error(`Error upserting matchups for ${tournament.tournament_name}:`, upsertError);
         // Don't throw - log error and continue with next tournament
       }
     }

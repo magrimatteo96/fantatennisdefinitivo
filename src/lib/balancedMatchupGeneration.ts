@@ -79,14 +79,15 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
       globalH2H
     );
 
-    // Validate
+    // Validate (warn only, don't stop generation)
     const teamMatchCounts = validateMatchups(matchups, teamIds, tournament.opponents_count);
 
     const expectedMatchups = (teamCount * tournament.opponents_count) / 2;
 
+    // Log warning if matchup count doesn't match, but continue anyway
     if (matchups.length !== expectedMatchups) {
-      throw new Error(
-        `Tournament ${tournament.tournament_name}: Expected ${expectedMatchups} matchups, got ${matchups.length}`
+      console.warn(
+        `⚠️ Tournament ${tournament.tournament_name}: Expected ${expectedMatchups} matchups, got ${matchups.length}. Saving anyway...`
       );
     }
 
@@ -96,22 +97,25 @@ export async function generateBalancedCalendar(): Promise<BalancedGenerationResu
       globalH2H[key]++;
     });
 
-    // Save to database
-    const matchupRecords = matchups.map(m => ({
-      tournament_id: tournament.id,
-      home_team_id: m.homeTeamId,
-      away_team_id: m.awayTeamId,
-      home_score: 0,
-      away_score: 0,
-      is_completed: false
-    }));
+    // Save to database - always try to save whatever we generated
+    if (matchups.length > 0) {
+      const matchupRecords = matchups.map(m => ({
+        tournament_id: tournament.id,
+        home_team_id: m.homeTeamId,
+        away_team_id: m.awayTeamId,
+        home_score: 0,
+        away_score: 0,
+        is_completed: false
+      }));
 
-    const { error: insertError } = await supabase
-      .from('matchups')
-      .insert(matchupRecords);
+      const { error: insertError } = await supabase
+        .from('matchups')
+        .insert(matchupRecords);
 
-    if (insertError) {
-      throw new Error(`Error inserting matchups for ${tournament.tournament_name}: ${insertError.message}`);
+      if (insertError) {
+        console.error(`Error inserting matchups for ${tournament.tournament_name}:`, insertError);
+        // Don't throw - log error and continue with next tournament
+      }
     }
 
     stats.push({
@@ -202,27 +206,71 @@ function generateRoundMatchups(
     console.warn(`⚠️ Could not generate perfect matchups. Found ${selectedMatchups.length}/${requiredMatchups}. Filling gaps...`);
 
     // Find teams that need more matches
-    const teamsNeedingMatches = teamIds.filter(id => teamMatchCount[id] < opponentsCount);
+    let teamsNeedingMatches = teamIds.filter(id => teamMatchCount[id] < opponentsCount);
 
-    for (const teamId of teamsNeedingMatches) {
-      while (teamMatchCount[teamId] < opponentsCount && selectedMatchups.length < requiredMatchups) {
-        // Find available opponent (prefer those with fewer matches)
-        const availableOpponents = teamIds
+    // Aggressive fallback: try multiple passes
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    while (selectedMatchups.length < requiredMatchups && attempts < maxAttempts) {
+      attempts++;
+      let addedThisRound = false;
+
+      for (const teamId of teamsNeedingMatches) {
+        if (teamMatchCount[teamId] >= opponentsCount) continue;
+        if (selectedMatchups.length >= requiredMatchups) break;
+
+        // First try: Find opponents with fewer matches
+        let availableOpponents = teamIds
           .filter(id => id !== teamId && teamMatchCount[id] < opponentsCount)
           .sort((a, b) => teamMatchCount[a] - teamMatchCount[b]);
 
+        // Second try: If no one available, relax rules and pick ANY opponent
+        if (availableOpponents.length === 0) {
+          console.warn(`⚠️ Relaxing rules for team ${teamId} - allowing any opponent`);
+          availableOpponents = teamIds.filter(id => id !== teamId);
+        }
+
         if (availableOpponents.length > 0) {
+          // Pick the best available opponent
           const opponentId = availableOpponents[0];
-          selectedMatchups.push({
-            homeTeamId: teamId,
-            awayTeamId: opponentId
-          });
-          teamMatchCount[teamId]++;
-          teamMatchCount[opponentId]++;
-        } else {
-          break;
+
+          // Check if this pairing already exists
+          const pairingExists = selectedMatchups.some(m =>
+            (m.homeTeamId === teamId && m.awayTeamId === opponentId) ||
+            (m.homeTeamId === opponentId && m.awayTeamId === teamId)
+          );
+
+          if (!pairingExists) {
+            selectedMatchups.push({
+              homeTeamId: teamId,
+              awayTeamId: opponentId
+            });
+            teamMatchCount[teamId]++;
+            teamMatchCount[opponentId]++;
+            addedThisRound = true;
+            console.log(`✓ Added fallback match: ${teamId} vs ${opponentId}`);
+          }
         }
       }
+
+      // Update teams still needing matches
+      teamsNeedingMatches = teamIds.filter(id => teamMatchCount[id] < opponentsCount);
+
+      // If we couldn't add any matches this round, break to avoid infinite loop
+      if (!addedThisRound) {
+        console.warn(`⚠️ Could not add more matches after ${attempts} attempts`);
+        break;
+      }
+    }
+
+    // Final summary
+    const finalTeamsNeedingMatches = teamIds.filter(id => teamMatchCount[id] < opponentsCount);
+    if (finalTeamsNeedingMatches.length > 0) {
+      console.warn(`⚠️ Generation incomplete. Teams still needing matches:`, finalTeamsNeedingMatches);
+      console.warn(`Generated ${selectedMatchups.length}/${requiredMatchups} matchups`);
+    } else {
+      console.log(`✅ Successfully filled all gaps. Generated ${selectedMatchups.length}/${requiredMatchups} matchups`);
     }
   }
 

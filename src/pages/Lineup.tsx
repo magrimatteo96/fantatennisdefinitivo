@@ -620,9 +620,11 @@ export const Lineup: React.FC = () => {
         });
 
       if (error) {
-        alert('Errore nel salvataggio: ' + error.message);
+        console.error('Save lineup error:', error);
+        alert('❌ Errore nel salvataggio: ' + error.message);
       } else {
         alert('✅ Formazione salvata con successo!');
+        console.log('✅ Lineup saved successfully');
       }
     } catch (error) {
       alert('Errore: ' + (error as Error).message);

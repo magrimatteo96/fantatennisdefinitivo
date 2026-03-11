@@ -220,8 +220,8 @@ export async function getTeamOpponentsInTournament(
   is_completed: boolean;
 }>> {
   const { data, error } = await supabase.rpc('get_team_opponents_in_tournament', {
-    p_team_id: teamId,
-    p_tournament_id: tournamentId,
+    t_id: teamId,
+    tournament_id_param: tournamentId,
   });
 
   if (error) {

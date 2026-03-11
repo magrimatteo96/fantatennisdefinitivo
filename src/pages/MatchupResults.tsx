@@ -73,8 +73,8 @@ export default function MatchupResults() {
         home_wta_total,
         away_wta_total,
         is_completed,
-        home_team:league_teams!matchups_home_team_id_fkey(name),
-        away_team:league_teams!matchups_away_team_id_fkey(name)
+        home_team:teams!home_team_id(name),
+        away_team:teams!away_team_id(name)
       `)
       .eq('tournament_id', selectedTournament);
 

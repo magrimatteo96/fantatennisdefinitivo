@@ -197,53 +197,18 @@ export const FantasyProvider: React.FC<{ children: ReactNode }> = ({ children })
   const autoGenerateMatchups = async (tournamentId: string) => {
     console.log('🏆 Auto-generating matchups for:', tournamentId);
 
-    const { data: myTeam } = await supabase
-      .from('league_teams')
-      .select('id')
-      .eq('user_id', MOCK_ADMIN_USER.id)
-      .maybeSingle();
-
-    if (!myTeam) {
-      console.log('⚠️ No team found for user');
-      return;
-    }
-
     const { data: existingMatchups } = await supabase
       .from('matchups')
       .select('id')
       .eq('tournament_id', tournamentId)
-      .or(`home_team_id.eq.${myTeam.id},away_team_id.eq.${myTeam.id}`);
+      .limit(1);
 
     if (existingMatchups && existingMatchups.length > 0) {
-      console.log('✅ Matchups already exist');
+      console.log('✅ Matchups already exist for this tournament');
       return;
     }
 
-    const { data: botTeams } = await supabase
-      .from('league_teams')
-      .select('id, name')
-      .neq('user_id', MOCK_ADMIN_USER.id)
-      .limit(2);
-
-    if (!botTeams || botTeams.length < 2) {
-      console.log('⚠️ Not enough bot teams');
-      return;
-    }
-
-    for (const botTeam of botTeams) {
-      await supabase.from('matchups').insert({
-        tournament_id: tournamentId,
-        home_team_id: myTeam.id,
-        away_team_id: botTeam.id,
-        home_score: 0,
-        away_score: 0,
-        home_championship_points: 0,
-        away_championship_points: 0,
-        is_completed: false
-      });
-    }
-
-    console.log('✅ Generated 2 matchups');
+    console.log('📅 No matchups found. This function is now deprecated - use Admin panel to generate matchups.');
   };
 
   const loadCurrentTournament = async () => {

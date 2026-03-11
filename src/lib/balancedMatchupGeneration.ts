@@ -213,7 +213,7 @@ function generateRoundMatchups(
 
     // Aggressive fallback: try multiple passes
     let attempts = 0;
-    const maxAttempts = 10;
+    const maxAttempts = 20;
 
     while (selectedMatchups.length < requiredMatchups && attempts < maxAttempts) {
       attempts++;
@@ -228,32 +228,38 @@ function generateRoundMatchups(
           .filter(id => id !== teamId && teamMatchCount[id] < opponentsCount)
           .sort((a, b) => teamMatchCount[a] - teamMatchCount[b]);
 
-        // Second try: If no one available, relax rules and pick ANY opponent
+        // Second try: If no one available, relax rules and pick ANY opponent who hasn't played this team yet
         if (availableOpponents.length === 0) {
-          console.warn(`⚠️ Relaxing rules for team ${teamId} - allowing any opponent`);
+          console.warn(`⚠️ Relaxing rules for team ${teamId} - allowing any opponent not yet played`);
+          availableOpponents = teamIds.filter(id => {
+            if (id === teamId) return false;
+            // Check if this pairing already exists
+            const alreadyPlaying = selectedMatchups.some(m =>
+              (m.homeTeamId === teamId && m.awayTeamId === id) ||
+              (m.homeTeamId === id && m.awayTeamId === teamId)
+            );
+            return !alreadyPlaying;
+          });
+        }
+
+        // Final fallback for Slams: if still no opponent, pick ANY team (allow duplicate matchups)
+        if (availableOpponents.length === 0) {
+          console.warn(`⚠️ SLAM FALLBACK: Assigning random opponent for team ${teamId}`);
           availableOpponents = teamIds.filter(id => id !== teamId);
         }
 
         if (availableOpponents.length > 0) {
-          // Pick the best available opponent
-          const opponentId = availableOpponents[0];
+          // Pick the best available opponent (or random if using final fallback)
+          const opponentId = availableOpponents[Math.floor(Math.random() * availableOpponents.length)];
 
-          // Check if this pairing already exists
-          const pairingExists = selectedMatchups.some(m =>
-            (m.homeTeamId === teamId && m.awayTeamId === opponentId) ||
-            (m.homeTeamId === opponentId && m.awayTeamId === teamId)
-          );
-
-          if (!pairingExists) {
-            selectedMatchups.push({
-              homeTeamId: teamId,
-              awayTeamId: opponentId
-            });
-            teamMatchCount[teamId]++;
-            teamMatchCount[opponentId]++;
-            addedThisRound = true;
-            console.log(`✓ Added fallback match: ${teamId} vs ${opponentId}`);
-          }
+          selectedMatchups.push({
+            homeTeamId: teamId,
+            awayTeamId: opponentId
+          });
+          teamMatchCount[teamId]++;
+          teamMatchCount[opponentId]++;
+          addedThisRound = true;
+          console.log(`✓ Added fallback match: ${teamId} vs ${opponentId}`);
         }
       }
 

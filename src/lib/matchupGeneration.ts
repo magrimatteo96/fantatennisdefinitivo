@@ -28,16 +28,7 @@ export async function generateAllMatchups(): Promise<MatchupGenerationResult[]> 
 export async function getTournamentMatchups(tournamentId: string) {
   const { data, error } = await supabase
     .from('matchups')
-    .select(`
-      id,
-      home_team_id,
-      away_team_id,
-      home_score,
-      away_score,
-      is_completed,
-      home_team:league_teams!home_team_id(id, name),
-      away_team:league_teams!away_team_id(id, name)
-    `)
+    .select(`*, home_team:teams!matchups_home_team_id_fkey(name), away_team:teams!matchups_away_team_id_fkey(name)`)
     .eq('tournament_id', tournamentId)
     .order('created_at');
 
@@ -51,16 +42,7 @@ export async function getTournamentMatchups(tournamentId: string) {
 export async function getTeamMatchupsForTournament(teamId: string, tournamentId: string) {
   const { data, error } = await supabase
     .from('matchups')
-    .select(`
-      id,
-      home_team_id,
-      away_team_id,
-      home_score,
-      away_score,
-      is_completed,
-      home_team:league_teams!home_team_id(id, name),
-      away_team:league_teams!away_team_id(id, name)
-    `)
+    .select(`*, home_team:teams!matchups_home_team_id_fkey(name), away_team:teams!matchups_away_team_id_fkey(name)`)
     .eq('tournament_id', tournamentId)
     .or(`home_team_id.eq.${teamId},away_team_id.eq.${teamId}`)
     .order('created_at');
